@@ -1,1 +1,4 @@
 [Bb]uild/*
+
+thirdparty/dxc_2023_03_01/*
+thirdparty/d3d12_agility_1.610.2
