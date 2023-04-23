@@ -72,6 +72,28 @@ macro(target_group_file_tree TARGET)
     group_file_tree("${${TARGET}_SOURCES}" "${TARGET}")
 endmacro()
 
+add_custom_target(owge_shaders)
+set(DXC_PATH "thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
+macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
+    target_sources(owge_shaders PRIVATE ${owge_shader_sources} ${SHADER})
+    if(MSVC)
+        set_source_files_properties(${SHADER} PROPERTIES VS_TOOL_OVERRIDE "None")
+    endif()
+    add_custom_command(
+        OUTPUT ${OUTFILE}
+        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -Fo ${OUTFILE} ${SHADER}
+        MAIN_DEPENDENCY ${SHADER}
+        COMMENT "Compiling ${SHADER} with parameters: -T ${MODEL} -E ${ENTRYPOINT} -Fo ${OUTFILE} ${SHADER}."
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        VERBATIM
+    )
+endmacro()
+
+macro(compile_hlsl_profile SHADER PROFILE)
+    string(REPLACE ".hlsl" ".${PROFILE}.bin" COMPILE_SHADER_OUT ${SHADER})
+    compile_hlsl(${SHADER} ${PROFILE}_6_7 "${PROFILE}_main" ${COMPILE_SHADER_OUT})
+endmacro()
+
 download_extract(
     https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2212.1/dxc_2023_03_01.zip
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
@@ -93,7 +115,6 @@ add_library(owge_d3d12_base)
 set_target_default_properties(owge_d3d12_base)
 add_subdirectory(owge_d3d12_base)
 
-get_target_property(owge_d3d12_base_files owge_d3d12_base SOURCES)
 target_group_file_tree(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
