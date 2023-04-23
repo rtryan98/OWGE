@@ -1,4 +1,8 @@
 [Bb]uild/*
 
+# Downloaded dependencies
 thirdparty/dxc_2023_03_01/*
-thirdparty/d3d12_agility_1.610.2
+thirdparty/d3d12_agility_1.610.2/*
+
+# Shaders
+*.bin
