@@ -22,4 +22,6 @@ private:
 void throw_if_failed(HRESULT hr);
 
 [[nodiscard]] DWORD wait_for_d3d12_fence(ID3D12Fence1* fence, uint64_t value, uint32_t timeout);
+
+[[nodiscard]] DWORD wait_for_d3d12_queue_idle(ID3D12Device* device, ID3D12CommandQueue* queue);
 }
