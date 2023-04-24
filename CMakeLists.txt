@@ -119,4 +119,9 @@ target_group_file_tree(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/owge_d3d12_base
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/include
+)
+target_link_libraries(
+    owge_d3d12_base PUBLIC
+    d3d12.lib
+)
