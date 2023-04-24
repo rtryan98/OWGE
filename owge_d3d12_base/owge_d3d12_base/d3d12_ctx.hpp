@@ -10,6 +10,7 @@ struct D3D12_Context_Settings
     bool enable_validation;
     bool enable_gpu_based_validation;
     bool disable_tdr;
+    D3D_FEATURE_LEVEL d3d_feature_level;
 };
 
 struct D3D12_Context

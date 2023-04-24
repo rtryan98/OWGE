@@ -54,7 +54,7 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
         0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&ctx.adapter)));
 
     // Create ID3D12Device
-    throw_if_failed(D3D12CreateDevice(ctx.adapter, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&ctx.device)));
+    throw_if_failed(D3D12CreateDevice(ctx.adapter, settings->d3d_feature_level, IID_PPV_ARGS(&ctx.device)));
 
     // Create ID3D12CommandQueues
     ctx.direct_queue = create_d3d12_command_queue(ctx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, settings->disable_tdr);
