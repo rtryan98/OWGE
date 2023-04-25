@@ -3,6 +3,7 @@
 # Downloaded dependencies
 thirdparty/dxc_2023_03_01/*
 thirdparty/d3d12_agility_1.610.2/*
+thirdparty/direct_storage_1.2.0/*
 
 # Shaders
 *.bin

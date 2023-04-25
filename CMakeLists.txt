@@ -111,6 +111,12 @@ copy_if_not_exist(
     ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/D3D12
 )
 
+download_extract(
+    https://www.nuget.org/api/v2/package/Microsoft.Direct3D.DirectStorage/1.2.0
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
+    direct_storage_1.2.0
+)
+
 add_library(owge_d3d12_base)
 set_target_default_properties(owge_d3d12_base)
 add_subdirectory(owge_d3d12_base)
