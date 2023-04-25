@@ -2,6 +2,7 @@
 
 #include "owge_d3d12_base/d3d12_util.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <wrl.h>
 
@@ -78,6 +79,7 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
 
 void destroy_d3d12_context(D3D12_Context* ctx)
 {
+    d3d12_context_wait_idle(ctx);
     ctx->sampler_descriptor_heap->Release();
     ctx->cbv_srv_uav_descriptor_heap->Release();
     ctx->copy_queue->Release();
@@ -86,5 +88,15 @@ void destroy_d3d12_context(D3D12_Context* ctx)
     ctx->device->Release();
     ctx->adapter->Release();
     ctx->factory->Release();
+}
+
+void d3d12_context_wait_idle(D3D12_Context* ctx)
+{
+    DWORD result = wait_for_d3d12_queue_idle(ctx->device, ctx->direct_queue);
+    assert(result == WAIT_OBJECT_0);
+    result = wait_for_d3d12_queue_idle(ctx->device, ctx->async_compute_queue);
+    assert(result == WAIT_OBJECT_0);
+    result = wait_for_d3d12_queue_idle(ctx->device, ctx->copy_queue);
+    assert(result == WAIT_OBJECT_0);
 }
 }

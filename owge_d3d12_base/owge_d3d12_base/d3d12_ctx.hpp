@@ -27,4 +27,5 @@ struct D3D12_Context
 
 [[nodiscard]] D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings);
 void destroy_d3d12_context(D3D12_Context* ctx);
+void d3d12_context_wait_idle(D3D12_Context* ctx);
 }
