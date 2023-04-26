@@ -2,6 +2,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <span>
 
 namespace owge
 {
@@ -11,6 +12,7 @@ struct D3D12_Context_Settings
     bool enable_gpu_based_validation;
     bool disable_tdr;
     D3D_FEATURE_LEVEL d3d_feature_level;
+    std::span<D3D12_STATIC_SAMPLER_DESC1> static_samplers;
 };
 
 struct D3D12_Context
@@ -23,6 +25,7 @@ struct D3D12_Context
     ID3D12CommandQueue* copy_queue;
     ID3D12DescriptorHeap* cbv_srv_uav_descriptor_heap;
     ID3D12DescriptorHeap* sampler_descriptor_heap;
+    ID3D12RootSignature* global_rootsig;
 };
 
 [[nodiscard]] D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings);

@@ -74,12 +74,40 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
     descriptor_heap_desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
     throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.sampler_descriptor_heap)));
 
+    D3D12_ROOT_PARAMETER1 global_rootsig_param = {
+        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+        .Constants = {
+            .ShaderRegister = 0,
+            .RegisterSpace = 0,
+            .Num32BitValues = 4
+        },
+        .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+    };
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC versioned_rootsig_desc = {
+        .Version = D3D_ROOT_SIGNATURE_VERSION_1_2,
+        .Desc_1_2 = {
+            .NumParameters = 1,
+            .pParameters = &global_rootsig_param,
+            .NumStaticSamplers = settings->static_samplers.size(),
+            .pStaticSamplers = settings->static_samplers.data(),
+            .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+                | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
+        }
+    };
+    ComPtr<ID3DBlob> rootsig_error_blob;
+    ComPtr<ID3DBlob> rootsig_blob;
+    throw_if_failed(D3D12SerializeVersionedRootSignature(
+        &versioned_rootsig_desc, &rootsig_blob, &rootsig_error_blob));
+    throw_if_failed(ctx.device->CreateRootSignature(
+        0, rootsig_blob.Get(), rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&ctx.global_rootsig)));
+
     return ctx;
 }
 
 void destroy_d3d12_context(D3D12_Context* ctx)
 {
     d3d12_context_wait_idle(ctx);
+    ctx->global_rootsig->Release();
     ctx->sampler_descriptor_heap->Release();
     ctx->cbv_srv_uav_descriptor_heap->Release();
     ctx->copy_queue->Release();
