@@ -10,4 +10,3 @@ Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
 This project follows the [Canonical Project Structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html).
 Filenames containing multiple words will be delimited by an underscore.
 Private sources and headers are to be placed in `<name>/private/` and are only added to the project with the `PRIVATE` visibility in CMake.
-Shaders are located in `res/shader`.
