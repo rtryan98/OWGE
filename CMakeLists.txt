@@ -142,3 +142,19 @@ target_link_libraries(
     owge_d3d12_base PUBLIC
     d3d12.lib
 )
+
+add_executable(owge_tech_demo)
+set_target_default_properties(owge_tech_demo)
+add_subdirectory(owge_tech_demo)
+target_group_file_tree(owge_tech_demo)
+target_include_directories(
+    owge_tech_demo PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/owge_tech_demo
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/include
+)
+target_link_libraries(
+    owge_tech_demo PUBLIC
+    owge_d3d12_base
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/lib/x64/dstorage.lib
+)
+add_dependencies(owge_tech_demo owge_shaders)
