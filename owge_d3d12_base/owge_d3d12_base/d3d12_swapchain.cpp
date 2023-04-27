@@ -27,6 +27,14 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
         &swapchain_desc, nullptr, nullptr, swapchain1.GetAddressOf()));
     throw_if_failed(swapchain1->QueryInterface(m_swapchain.GetAddressOf()));
 
+    D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+        .NumDescriptors = DXGI_MAX_SWAP_CHAIN_BUFFERS,
+        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+        .NodeMask = 0
+    };
+    throw_if_failed(m_device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&m_descriptor_heap)));
+
     recreate_resources();
 }
 
