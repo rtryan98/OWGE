@@ -87,9 +87,9 @@ macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
     endif()
     add_custom_command(
         OUTPUT ${OUTFILE}
-        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -Fo ${OUTFILE} ${SHADER}
+        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -ftime-report -I "owge_shaders/" -force-rootsig-ver rootsig_1_2 -Zpr -Fo ${OUTFILE} ${SHADER}
         MAIN_DEPENDENCY ${SHADER}
-        COMMENT "Compiling ${SHADER} with parameters: -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -Fo ${OUTFILE} ${SHADER}."
+        COMMENT "Compiling ${SHADER} with parameters model ${MODEL}."
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         VERBATIM
     )
@@ -141,6 +141,7 @@ target_include_directories(
 target_link_libraries(
     owge_d3d12_base PUBLIC
     d3d12.lib
+    dxgi.lib
 )
 
 add_executable(owge_tech_demo)
