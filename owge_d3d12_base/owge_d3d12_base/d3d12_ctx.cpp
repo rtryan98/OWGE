@@ -88,7 +88,7 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
         .Desc_1_2 = {
             .NumParameters = 1,
             .pParameters = &global_rootsig_param,
-            .NumStaticSamplers = settings->static_samplers.size(),
+            .NumStaticSamplers = UINT(settings->static_samplers.size()),
             .pStaticSamplers = settings->static_samplers.data(),
             .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
                 | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
