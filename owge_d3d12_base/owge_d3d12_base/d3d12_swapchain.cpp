@@ -38,6 +38,11 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
     recreate_resources();
 }
 
+void D3D12_Swapchain::acquire_next_image()
+{
+    m_current_idx = m_swapchain->GetCurrentBackBufferIndex();
+}
+
 bool D3D12_Swapchain::try_resize()
 {
     DXGI_SWAP_CHAIN_DESC1 desc;
@@ -62,6 +67,14 @@ bool D3D12_Swapchain::try_resize()
         recreate_resources();
     }
     return resize;
+}
+
+D3D12_Swapchain_Resources D3D12_Swapchain::get_acquired_resources() const
+{
+    return {
+        .buffer = m_buffers[m_current_idx].Get(),
+        .rtv_descriptor = m_descriptors[m_current_idx]
+    };
 }
 
 void D3D12_Swapchain::recreate_resources()
