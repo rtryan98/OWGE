@@ -131,7 +131,6 @@ copy_dll_if_not_exist(
 add_library(owge_d3d12_base)
 set_target_default_properties(owge_d3d12_base)
 add_subdirectory(owge_d3d12_base)
-
 target_group_file_tree(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
@@ -142,6 +141,15 @@ target_link_libraries(
     owge_d3d12_base PUBLIC
     d3d12.lib
     dxgi.lib
+)
+
+add_library(owge_window)
+set_target_default_properties(owge_window)
+add_subdirectory(owge_window)
+target_group_file_tree(owge_window)
+target_include_directories(
+    owge_window PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/owge_window
 )
 
 add_executable(owge_tech_demo)
