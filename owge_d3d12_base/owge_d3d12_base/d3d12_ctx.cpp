@@ -23,7 +23,8 @@ ID3D12CommandQueue* create_d3d12_command_queue(ID3D12Device* device,
         .NodeMask = 0
     };
     ID3D12CommandQueue* result = nullptr;
-    throw_if_failed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&result)));
+    throw_if_failed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&result)),
+        "Error creating Command Queue.");
     return result;
 }
 
@@ -48,14 +49,17 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
             }
         }
     }
-    throw_if_failed(CreateDXGIFactory2(factory_flags, IID_PPV_ARGS(&ctx.factory)));
+    throw_if_failed(CreateDXGIFactory2(factory_flags, IID_PPV_ARGS(&ctx.factory)),
+        "Error creating DXGI Factory.");
 
     // Create DXGIAdapter
     throw_if_failed(ctx.factory->EnumAdapterByGpuPreference(
-        0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&ctx.adapter)));
+        0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&ctx.adapter)),
+        "Error enumerating Adapters.");
 
     // Create ID3D12Device
-    throw_if_failed(D3D12CreateDevice(ctx.adapter, settings->d3d_feature_level, IID_PPV_ARGS(&ctx.device)));
+    throw_if_failed(D3D12CreateDevice(ctx.adapter, settings->d3d_feature_level, IID_PPV_ARGS(&ctx.device)),
+        "Error creating Device.");
 
     // Create ID3D12CommandQueues
     ctx.direct_queue = create_d3d12_command_queue(ctx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, settings->disable_tdr);
@@ -69,10 +73,12 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
         .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
         .NodeMask = 0
     };
-    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.cbv_srv_uav_descriptor_heap)));
+    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.cbv_srv_uav_descriptor_heap)),
+        "Error creating CBV_SRV_UAV Descriptor Heap.");
     descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
     descriptor_heap_desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
-    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.sampler_descriptor_heap)));
+    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.sampler_descriptor_heap)),
+        "Error creating Sampler Descriptor Heap.");
 
     D3D12_ROOT_PARAMETER1 global_rootsig_param = {
         .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
@@ -97,9 +103,11 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
     ComPtr<ID3DBlob> rootsig_error_blob;
     ComPtr<ID3DBlob> rootsig_blob;
     throw_if_failed(D3D12SerializeVersionedRootSignature(
-        &versioned_rootsig_desc, &rootsig_blob, &rootsig_error_blob));
+        &versioned_rootsig_desc, &rootsig_blob, &rootsig_error_blob),
+        "Error serializing Root Signature.");
     throw_if_failed(ctx.device->CreateRootSignature(
-        0, rootsig_blob.Get(), rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&ctx.global_rootsig)));
+        0, rootsig_blob->GetBufferPointer(), rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&ctx.global_rootsig)),
+        "Error creating Root Signature.");
 
     return ctx;
 }

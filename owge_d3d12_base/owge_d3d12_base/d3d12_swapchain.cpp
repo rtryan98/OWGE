@@ -24,8 +24,10 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
     };
     ComPtr<IDXGISwapChain1> swapchain1 = {};
     throw_if_failed(factory->CreateSwapChainForHwnd(m_direct_queue, hwnd,
-        &swapchain_desc, nullptr, nullptr, swapchain1.GetAddressOf()));
-    throw_if_failed(swapchain1->QueryInterface(m_swapchain.GetAddressOf()));
+        &swapchain_desc, nullptr, nullptr, swapchain1.GetAddressOf()),
+        "Error creating Swapchain.");
+    throw_if_failed(swapchain1->QueryInterface(m_swapchain.GetAddressOf()),
+        "Error querying Swapchain Interface.");
 
     D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {
         .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -33,7 +35,8 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
         .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
         .NodeMask = 0
     };
-    throw_if_failed(m_device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&m_descriptor_heap)));
+    throw_if_failed(m_device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&m_descriptor_heap)),
+        "Error creating Descriptor Heap for Swapchain RTVs.");
 
     recreate_resources();
 }
@@ -46,7 +49,8 @@ void D3D12_Swapchain::acquire_next_image()
 bool D3D12_Swapchain::try_resize()
 {
     DXGI_SWAP_CHAIN_DESC1 desc;
-    throw_if_failed(m_swapchain->GetDesc1(&desc));
+    throw_if_failed(m_swapchain->GetDesc1(&desc),
+        "Error acquiring Swapchain description for resize.");
     RECT rect;
     GetClientRect(m_hwnd, &rect);
     uint32_t client_width = rect.right - rect.left;
@@ -63,7 +67,8 @@ bool D3D12_Swapchain::try_resize()
         auto wait_idle_result = wait_for_d3d12_queue_idle(m_device, m_direct_queue);
         assert(wait_idle_result == WAIT_OBJECT_0);
         m_buffers = {};
-        m_swapchain->ResizeBuffers(0, client_width, client_height, DXGI_FORMAT_UNKNOWN, 0);
+        throw_if_failed(m_swapchain->ResizeBuffers(0, client_width, client_height, DXGI_FORMAT_UNKNOWN, 0),
+            "Error resizing Swapchain buffers.");
         recreate_resources();
     }
     return resize;
@@ -83,11 +88,13 @@ void D3D12_Swapchain::recreate_resources()
     auto descriptor_increment = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     DXGI_SWAP_CHAIN_DESC1 desc;
-    throw_if_failed(m_swapchain->GetDesc1(&desc));
+    throw_if_failed(m_swapchain->GetDesc1(&desc),
+        "Error acquiring Swapchain description for resource recreation.");
 
     for (uint32_t i = 0; i < desc.BufferCount; ++i, descriptor_cpu_handle.ptr += descriptor_increment)
     {
-        m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
+        throw_if_failed(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i])),
+            "Error acquiring Swapchain Buffer.");
         D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
             .Format = desc.Format,
             .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,

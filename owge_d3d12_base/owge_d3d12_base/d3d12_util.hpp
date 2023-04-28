@@ -10,7 +10,7 @@ namespace owge
 class HRESULT_Exception : public std::exception
 {
 public:
-    HRESULT_Exception(HRESULT hr);
+    HRESULT_Exception(HRESULT hr, const char* message = nullptr);
 
     [[nodiscard]] virtual const char* what() const override;
 
@@ -19,7 +19,7 @@ private:
     std::string m_message;
 };
 
-void throw_if_failed(HRESULT hr);
+void throw_if_failed(HRESULT hr, const char* message);
 
 [[nodiscard]] DWORD wait_for_d3d12_fence(ID3D12Fence1* fence, uint64_t value, uint32_t timeout);
 
