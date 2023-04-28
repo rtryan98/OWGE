@@ -78,6 +78,26 @@ macro(target_group_file_tree TARGET)
     group_file_tree("${${TARGET}_SOURCES}" "${TARGET}")
 endmacro()
 
+macro(setup_owge_target TARGET)
+    set_target_default_properties(${TARGET})
+    add_subdirectory(${TARGET})
+    target_group_file_tree(${TARGET})
+    target_include_directories(
+        ${TARGET} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET}
+    )
+endmacro()
+
+macro(add_owge_lib TARGET)
+    add_library(${TARGET})
+    setup_owge_target(${TARGET})
+endmacro()
+
+macro(add_owge_exe TARGET)
+    add_executable(${TARGET})
+    setup_owge_target(${TARGET})
+endmacro()
+
 add_custom_target(owge_shaders)
 set(DXC_PATH "thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
 macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
@@ -128,13 +148,9 @@ copy_dll_if_not_exist(
     .
 )
 
-add_library(owge_d3d12_base)
-set_target_default_properties(owge_d3d12_base)
-add_subdirectory(owge_d3d12_base)
-target_group_file_tree(owge_d3d12_base)
+add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/owge_d3d12_base
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/include
 )
 target_link_libraries(
@@ -143,22 +159,11 @@ target_link_libraries(
     dxgi.lib
 )
 
-add_library(owge_window)
-set_target_default_properties(owge_window)
-add_subdirectory(owge_window)
-target_group_file_tree(owge_window)
-target_include_directories(
-    owge_window PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/owge_window
-)
+add_owge_lib(owge_window)
 
-add_library(owge_render_engine)
-set_target_default_properties(owge_render_engine)
-add_subdirectory(owge_render_engine)
-target_group_file_tree(owge_render_engine)
+add_owge_lib(owge_render_engine)
 target_include_directories(
     owge_render_engine PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/owge_render_engine
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/include
 )
 target_link_libraries(
@@ -168,14 +173,7 @@ target_link_libraries(
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/lib/x64/dstorage.lib
 )
 
-add_executable(owge_tech_demo)
-set_target_default_properties(owge_tech_demo)
-add_subdirectory(owge_tech_demo)
-target_group_file_tree(owge_tech_demo)
-target_include_directories(
-    owge_tech_demo PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/owge_tech_demo
-)
+add_owge_exe(owge_tech_demo)
 target_link_libraries(
     owge_tech_demo PUBLIC
     owge_render_engine
