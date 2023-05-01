@@ -1,5 +1,6 @@
 #include "owge_d3d12_base/d3d12_ctx.hpp"
 
+#include "owge_d3d12_base/com_ptr.hpp"
 #include "owge_d3d12_base/d3d12_util.hpp"
 
 #include <cassert>
@@ -30,8 +31,6 @@ ID3D12CommandQueue* create_d3d12_command_queue(ID3D12Device* device,
 
 D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
 {
-    using Microsoft::WRL::ComPtr;
-
     D3D12_Context ctx = {};
 
     // Create DXGIFactory
@@ -39,7 +38,7 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
     if (settings->enable_validation)
     {
         factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
-        ComPtr<ID3D12Debug6> debug = {};
+        Com_Ptr<ID3D12Debug6> debug = {};
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))
         {
             debug->EnableDebugLayer();
@@ -100,8 +99,8 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
                 | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
         }
     };
-    ComPtr<ID3DBlob> rootsig_error_blob;
-    ComPtr<ID3DBlob> rootsig_blob;
+    Com_Ptr<ID3DBlob> rootsig_error_blob;
+    Com_Ptr<ID3DBlob> rootsig_blob;
     throw_if_failed(D3D12SerializeVersionedRootSignature(
         &versioned_rootsig_desc, &rootsig_blob, &rootsig_error_blob),
         "Error serializing Root Signature.");

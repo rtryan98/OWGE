@@ -10,8 +10,6 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
     ID3D12Device* device, ID3D12CommandQueue* direct_queue, HWND hwnd, uint32_t buffer_count)
     : m_swapchain(), m_device(device), m_direct_queue(direct_queue), m_hwnd(hwnd), m_buffers()
 {
-    using Microsoft::WRL::ComPtr;
-
     DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {
         .Format = DXGI_FORMAT_R8G8B8A8_UNORM, // TODO: make this customizable for HDR and sRGB?
         .SampleDesc = { .Count = 1, .Quality = 0 },
@@ -22,7 +20,7 @@ D3D12_Swapchain::D3D12_Swapchain(IDXGIFactory4* factory,
         .AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
         .Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING // TODO: query support for tearing
     };
-    ComPtr<IDXGISwapChain1> swapchain1 = {};
+    Com_Ptr<IDXGISwapChain1> swapchain1 = {};
     throw_if_failed(factory->CreateSwapChainForHwnd(m_direct_queue, hwnd,
         &swapchain_desc, nullptr, nullptr, swapchain1.GetAddressOf()),
         "Error creating Swapchain.");
