@@ -161,7 +161,7 @@ float __oceanography_donelan_banner_beta_s(float omega, float omega_peak)
         : om_over_omp < 1.6f
             ? beta_s_1
             : beta_s_2;
-    // Clamping om_over_omp between 0.54 and 0.95 is not 100% correct according to [Donelan et al. 1985],
+    // Clamping om_over_omp between 0.54 and 0.95 is correct according to [Donelan et al. 1985],
     // however, cutting off om_over_omp at 0.54 and returning 0.0 instead
     // will result in a less pleasing result according to [Horvath 2015].
     // TODO: Maybe parameterize this cutoff?
