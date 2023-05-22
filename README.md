@@ -10,3 +10,8 @@ Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
 This project follows the [Canonical Project Structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html).
 Filenames containing multiple words will be delimited by an underscore.
 Private sources and headers are to be placed in `<name>/private/` and are only added to the project with the `PRIVATE` visibility in CMake.
+
+## Legal
+Running CMake will download the D3D12 Agility SDK, the DirectStorage SDK and the DirectX Shader Compiler.
+By doing so you accept the license terms provided by Microsoft for those SDKs.
+A Copy of the Licenses is included in `COPYING.md`.
