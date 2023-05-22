@@ -107,7 +107,7 @@ macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
     endif()
     add_custom_command(
         OUTPUT ${OUTFILE}
-        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -ftime-report -I "owge_shaders/" -force-rootsig-ver rootsig_1_2 -Zpr -Fo ${OUTFILE} ${SHADER}
+        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -ftime-report -I "owge_shaders/" -Zpr -Fo ${OUTFILE} ${SHADER}
         MAIN_DEPENDENCY ${SHADER}
         COMMENT "Compiling ${SHADER} with parameters model ${MODEL}."
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -118,7 +118,7 @@ add_subdirectory(owge_shaders)
 target_group_file_tree(owge_shaders)
 
 macro(compile_hlsl_profile SHADER PROFILE)
-    string(REPLACE ".hlsl" ".${PROFILE}.bin" COMPILE_SHADER_OUT ${SHADER})
+    string(REPLACE ".hlsl" ".bin" COMPILE_SHADER_OUT ${SHADER})
     compile_hlsl(${SHADER} ${PROFILE}_6_7 "${PROFILE}_main" ${COMPILE_SHADER_OUT})
 endmacro()
 
