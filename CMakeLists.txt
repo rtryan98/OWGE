@@ -114,6 +114,8 @@ macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
         VERBATIM
     )
 endmacro()
+add_subdirectory(owge_shaders)
+target_group_file_tree(owge_shaders)
 
 macro(compile_hlsl_profile SHADER PROFILE)
     string(REPLACE ".hlsl" ".${PROFILE}.bin" COMPILE_SHADER_OUT ${SHADER})
