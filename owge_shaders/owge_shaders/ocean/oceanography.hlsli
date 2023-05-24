@@ -1,7 +1,7 @@
 #ifndef OWGE_OCEANOGRAPHY
 #define OWGE_OCEANOGRAPHY
 
-#include "owge_shaders/calculus.hlsli"
+#include "owge_shaders/math.hlsli"
 #include "owge_shaders/math_constants.hlsli"
 
 // Dispersion relationships
@@ -110,8 +110,8 @@ float oceanography_positive_cos_sq_directional_spreading(float theta)
 float __oceanography_mitsuyasu_s(float omega, float omega_peak, float u, float g)
 {
     float s_p = 11.5f * pow((omega_peak * u) / g, -2.5f);
-    float s0 = pow(sp,  5.0f);
-    float s1 = pow(sp, -2.5f);
+    float s0 = pow(s_p,  5.0f);
+    float s1 = pow(s_p, -2.5f);
     return omega > omega_peak
         ? s1
         : s0;
@@ -132,7 +132,7 @@ float oceanography_mitsuyasu_directional_spreading(float omega, float omega_peak
     return q_s * pow(abs(cos(theta / 2.0f)), 2.0f);
 }
 
-float __oceanography_hasselmann_s(float omega, float omega_peak, float u, float, g)
+float __oceanography_hasselmann_s(float omega, float omega_peak, float u, float g)
 {
     float s0 = 6.97f * pow(omega / omega_peak, 4.06f);
     float s1_exp = -2.33f - 1.45f * (((u * omega_peak) / g) - 1.17f);
