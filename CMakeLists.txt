@@ -99,28 +99,48 @@ macro(add_owge_exe TARGET)
 endmacro()
 
 add_custom_target(owge_shaders)
-set(DXC_PATH "thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
+set(DXC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
+set(SHADER_COMPILE_PARAMS -HV 2021 -Zpr -I "${CMAKE_CURRENT_SOURCE_DIR}/owge_shaders/")
 macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
-    target_sources(owge_shaders PRIVATE ${owge_shader_sources} ${SHADER})
-    if(MSVC)
-        set_source_files_properties(${SHADER} PROPERTIES VS_TOOL_OVERRIDE "None")
-    endif()
     add_custom_command(
         OUTPUT ${OUTFILE}
-        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} -HV 2021 -ftime-report -I "owge_shaders/" -Zpr -Fo ${OUTFILE} ${SHADER}
+        COMMAND ${DXC_PATH} -T ${MODEL} -E ${ENTRYPOINT} ${SHADER_COMPILE_PARAMS} -Fo ${OUTFILE} ${SHADER}
         MAIN_DEPENDENCY ${SHADER}
-        COMMENT "Compiling ${SHADER} with parameters model ${MODEL}."
+        COMMENT "Compiling ${SHADER}."
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         VERBATIM
     )
 endmacro()
-add_subdirectory(owge_shaders)
-target_group_file_tree(owge_shaders)
 
 macro(compile_hlsl_profile SHADER PROFILE)
     string(REPLACE ".hlsl" ".bin" COMPILE_SHADER_OUT ${SHADER})
     compile_hlsl(${SHADER} ${PROFILE}_6_7 "${PROFILE}_main" ${COMPILE_SHADER_OUT})
 endmacro()
+
+add_subdirectory(owge_shaders)
+target_group_file_tree(owge_shaders)
+get_target_property(owge_shaders_SOURCES owge_shaders SOURCES)
+foreach(ITEM IN ITEMS ${owge_shaders_SOURCES})
+    if(${ITEM} MATCHES "\.vs\.hlsl")
+        compile_hlsl_profile(${ITEM} vs)
+    elseif(${ITEM} MATCHES "\.ps\.hlsl")
+        compile_hlsl_profile(${ITEM} ps)
+    elseif(${ITEM} MATCHES "\.cs\.hlsl")
+        compile_hlsl_profile(${ITEM} cs)
+    elseif(${ITEM} MATCHES "\.gs\.hlsl")
+        compile_hlsl_profile(${ITEM} gs)
+    elseif(${ITEM} MATCHES "\.ds\.hlsl")
+        compile_hlsl_profile(${ITEM} ds)
+    elseif(${ITEM} MATCHES "\.hs\.hlsl")
+        compile_hlsl_profile(${ITEM} hs)
+    elseif(${ITEM} MATCHES "\.lib\.hlsl")
+        compile_hlsl_profile(${ITEM} lib)
+    elseif(${ITEM} MATCHES "\.as\.hlsl")
+        compile_hlsl_profile(${ITEM} as)
+    elseif(${ITEM} MATCHES "\.ms\.hlsl")
+        compile_hlsl_profile(${ITEM} ms)
+    endif()
+endforeach()
 
 download_extract(
     https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2212.1/dxc_2023_03_01.zip
