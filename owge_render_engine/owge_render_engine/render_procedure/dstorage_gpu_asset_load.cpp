@@ -83,6 +83,7 @@ uint32_t DStorage_GPU_Asset_Load::get_next_status_index()
 
 void DStorage_GPU_Asset_Load::upload_resource(const DSTORAGE_REQUEST& request, const Resource_State_After_Load& resource)
 {
+    resource;
     switch (request.Options.DestinationType)
     {
     case DSTORAGE_REQUEST_DESTINATION_BUFFER:
