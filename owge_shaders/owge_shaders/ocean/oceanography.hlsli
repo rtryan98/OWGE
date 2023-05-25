@@ -58,17 +58,31 @@ float oceanography_phillips_spectrum(float omega, float alpha, float g)
     return alpha * 2.0f * mc_pi * (pow(g, 2.0f) / pow(omega, 5.0f));
 }
 
+float oceanography_pierson_moskowith_omega_0(float g, float u)
+{
+    return g / (1.026f * u);
+}
+
+float oceanography_pierson_moskowith_omega_peak(float g, float u)
+{
+    return (0.855f * g) / u;
+}
+
 float oceanography_pierson_moskowith_spectrum(float omega, float omega_peak, float g, float u)
 {
     float alpha = 0.0081f;
     float beta = 0.74f;
-    float omega_0 = g / (1.026f * u);
-    return ((alpha * pow(g, 2.0f))/pow(omega, 5.0f)) * exp(-beta * pow(omega_0 / omega, 4.0f));
+    return ((alpha * pow(g, 2.0f))/pow(omega, 5.0f)) * exp(-beta * pow(omega_peak / omega, 4.0f));
 }
 
 float oceanography_generalized_a_b_spectrum(float omega, float a, float b)
 {
     return (a / pow(omega, 5.0f)) * exp((-b) / pow(omega, 4.0f));
+}
+
+float oceanography_jonswap_omega_peak(float g, float u, float f)
+{
+    return 22.0f * (pow(g, 2.0f) / (u * f));
 }
 
 float oceanography_jonswap_spectrum(float omega, float omega_peak, float u, float g, float f)
