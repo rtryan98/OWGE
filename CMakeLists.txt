@@ -173,6 +173,8 @@ copy_dll_if_not_exist(
     .
 )
 
+add_subdirectory(thirdparty)
+
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
