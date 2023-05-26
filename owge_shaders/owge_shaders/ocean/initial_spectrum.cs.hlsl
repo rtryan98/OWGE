@@ -17,10 +17,19 @@ struct Bindset
     RW_Texture spectrum_tex;
 };
 
+struct Push_Constants
+{
+    uint bindset_buffer;
+    uint bindset_index;
+    uint __pad0;
+    uint __pad1;
+};
+ConstantBuffer<Push_Constants> pc : register(b0, space0);
+
 [numthreads(32, 32, 1)]
 void cs_main(uint3 id : SV_DispatchThreadID)
 {
-    Bindset bnd;
+    Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_index);
     Ocean_Parameters pars = bnd.params.load_uniform<Ocean_Parameters>();
 
     float delta_k = 2.0f * mc_pi / pars.lengthscale;
