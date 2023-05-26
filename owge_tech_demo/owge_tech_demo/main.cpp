@@ -14,6 +14,6 @@ int32_t main()
         .d3d_feature_level = D3D_FEATURE_LEVEL_12_2,
         .static_samplers = {}
     };
-    render_engine = std::make_unique<owge::Render_Engine>(window, d3d12_settings);
+    render_engine = std::make_unique<owge::Render_Engine>(window.get_hwnd(), d3d12_settings);
     return 0;
 }
