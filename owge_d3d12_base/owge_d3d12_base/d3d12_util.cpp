@@ -59,4 +59,44 @@ DWORD wait_for_d3d12_queue_idle(ID3D12Device* device, ID3D12CommandQueue* queue)
         "Error signalling Fence for wait_for_d3d12_queue_idle.");
     return wait_for_d3d12_fence(fence.Get(), FENCE_SIGNAL_VALUE, INFINITE);
 }
+
+Descriptor_Allocator::Descriptor_Allocator(ID3D12DescriptorHeap* heap, ID3D12Device* device)
+    : m_heap(heap), m_device(device), m_free_list()
+{
+    auto desc = m_heap->GetDesc();
+    auto size = desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+        ? D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2
+        : desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
+            ? D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE
+            : MAX_RTV_DSV_DESCRIPTORS;
+    m_free_list.reserve(size);
+}
+
+Descriptor Descriptor_Allocator::allocate() noexcept
+{
+    uint32_t index = m_free_list.size();
+    if (m_free_list.size() > 0)
+    {
+        index = m_free_list.back();
+        m_free_list.pop_back();
+    }
+
+    auto desc = m_heap->GetDesc();
+    auto increment_size = m_device->GetDescriptorHandleIncrementSize(desc.Type);
+    auto cpu_start = m_heap->GetCPUDescriptorHandleForHeapStart();
+    cpu_start.ptr += index * increment_size;
+    auto gpu_start = m_heap->GetGPUDescriptorHandleForHeapStart();
+    gpu_start.ptr += index * increment_size;
+
+    Descriptor result = {
+        .cpu_handle = cpu_start,
+        .gpu_handle = gpu_start,
+        .index = index
+    };
+}
+
+void Descriptor_Allocator::free(uint32_t index) noexcept
+{
+    m_free_list.push_back(index);
+}
 }
