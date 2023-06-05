@@ -6,8 +6,13 @@ It makes use of features only available to recent GPUs and thus requires a Direc
 Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
 1. Run `cmake -G "Visual Studio 17" -B "build/"`.
 
+Optional steps:
+- NVIDIA Nsight Perf SDK:
+    1. If not already done, set the environment variable `NVPERF_SDK_PATH` to the topmost directory of the SDK.
+    2. Enable the cmake option `OWGE_USE_NVPERF`.
+
 ## Meta
-This project follows the [Canonical Project Structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html).
+This project follows the [Canonical Project Structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html) with some variations.
 Filenames containing multiple words will be delimited by an underscore.
 Private sources and headers are to be placed in `<name>/private/` and are only added to the project with the `PRIVATE` visibility in CMake.
 
@@ -15,3 +20,6 @@ Private sources and headers are to be placed in `<name>/private/` and are only a
 Running CMake will download the D3D12 Agility SDK, the DirectStorage SDK and the DirectX Shader Compiler.
 By doing so you accept the license terms provided by Microsoft for those SDKs.
 A Copy of the Licenses is included in `COPYING.md`.
+
+To use NvPerf with OWGE you need to agree to NVIDIA's licence agreement provided by the SDK,
+which can be found on [NVIDIA's Nsight Perf SDK page](https://developer.nvidia.com/nsight-perf-sdk).
