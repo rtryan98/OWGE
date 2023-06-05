@@ -8,6 +8,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY bin)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;Release" CACHE STRING "" FORCE) # remove MinSizeRel
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/NvPerfConfig.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/NvPerfUtilityConfig.cmake)
+
 macro(download_extract URL DST_FOLDER FOLDER_NAME)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/download/${FOLDER_NAME}.zip)
         message(STATUS "Downloading ${URL} and unpacking to ${DST_FOLDER}/${FOLDER_NAME} .")
