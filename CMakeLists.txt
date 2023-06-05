@@ -178,6 +178,8 @@ copy_dll_if_not_exist(
 
 add_subdirectory(thirdparty)
 
+option(OWGE_USE_NVPERF "Use NVIDIA Nsight Perf SDK" OFF)
+
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
@@ -209,3 +211,25 @@ target_link_libraries(
     owge_render_engine
 )
 add_dependencies(owge_tech_demo owge_shaders)
+
+if(OWGE_USE_NVPERF)
+    message(STATUS "Building owge_render_engine with NvPerf.")
+    if(NOT NvPerf_FOUND)
+        message(FATAL_ERROR
+            "NVIDIA Nsight Perf SDK was not found and "
+            "however OWGE_USE_NVPERF was set to true.")
+    endif()
+
+    target_compile_definitions(
+        owge_render_engine PUBLIC
+        OWGE_USE_NVPERF=1)
+    target_include_directories(
+        owge_render_engine PRIVATE
+        ${NvPerf_INCLUDE_DIRS}
+    )
+    target_link_libraries(
+        owge_render_engine PUBLIC
+        ${NvPerf_LIBRARIES}
+    )
+    deploynvperf(owge_tech_demo NvPerf-shared)
+endif()
