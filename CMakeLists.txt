@@ -103,7 +103,7 @@ endmacro()
 
 add_custom_target(owge_shaders)
 set(DXC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
-set(SHADER_COMPILE_PARAMS -HV 2021 -Zpr -I "${CMAKE_CURRENT_SOURCE_DIR}/owge_shaders/")
+set(SHADER_COMPILE_PARAMS -HV 2021 -Zpr -no-legacy-cbuf-layout -enable-16bit-types -I "${CMAKE_CURRENT_SOURCE_DIR}/owge_shaders/")
 macro(compile_hlsl SHADER MODEL ENTRYPOINT OUTFILE)
     add_custom_command(
         OUTPUT ${OUTFILE}
