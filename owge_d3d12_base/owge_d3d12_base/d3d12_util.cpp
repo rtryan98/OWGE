@@ -74,7 +74,7 @@ Descriptor_Allocator::Descriptor_Allocator(ID3D12DescriptorHeap* heap, ID3D12Dev
 
 Descriptor Descriptor_Allocator::allocate() noexcept
 {
-    uint32_t index = m_free_list.size();
+    uint32_t index = uint32_t(m_free_list.size());
     if (m_free_list.size() > 0)
     {
         index = m_free_list.back();
@@ -84,11 +84,11 @@ Descriptor Descriptor_Allocator::allocate() noexcept
     auto desc = m_heap->GetDesc();
     auto increment_size = m_device->GetDescriptorHandleIncrementSize(desc.Type);
     auto cpu_start = m_heap->GetCPUDescriptorHandleForHeapStart();
-    cpu_start.ptr += index * increment_size;
+    cpu_start.ptr += uint64_t(index) * increment_size;
     auto gpu_start = m_heap->GetGPUDescriptorHandleForHeapStart();
-    gpu_start.ptr += index * increment_size;
+    gpu_start.ptr += uint64_t(index) * increment_size;
 
-    Descriptor result = {
+    return {
         .cpu_handle = cpu_start,
         .gpu_handle = gpu_start,
         .index = index
