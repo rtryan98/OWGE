@@ -1,5 +1,12 @@
 #include "owge_render_engine/render_engine.hpp"
 
+#if OWGE_USE_NVPERF
+#pragma warning(push, 3) // NvPerf sample code does not compile under W4
+#include <nvperf_host_impl.h>
+#include <NvPerfD3D12.h>
+#pragma warning(pop)
+#endif
+
 namespace owge
 {
 static constexpr uint32_t MAX_CONCURRENT_GPU_FRAMES = 2;
@@ -14,8 +21,10 @@ static constexpr uint32_t NO_UAV = ~0u;
 static constexpr uint32_t NO_RTV_DSV = ~0u;
 
 Render_Engine::Render_Engine(HWND hwnd,
-    const D3D12_Context_Settings& d3d12_context_settings)
+    const D3D12_Context_Settings& d3d12_context_settings,
+    const Render_Engine_Settings& render_engine_settings)
     : m_ctx(),
+    m_settings(render_engine_settings),
     m_swapchain(),
     m_buffers(MAX_BUFFERS),
     m_textures(MAX_TEXTURES),
@@ -43,10 +52,45 @@ Render_Engine::Render_Engine(HWND hwnd,
         m_rtv_descriptor_heap.Get(), m_ctx.device);
     m_dsv_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
         m_dsv_descriptor_heap.Get(), m_ctx.device);
+
+    if (render_engine_settings.nvperf_enabled)
+    {
+#if OWGE_USE_NVPERF
+        if (d3d12_context_settings.enable_validation ||
+            d3d12_context_settings.enable_gpu_based_validation)
+        {
+            // TODO: nvperf does not support validation. Post warning.
+            return;
+        }
+        if (!nv::perf::D3D12IsNvidiaDevice(m_ctx.device))
+        {
+            // TODO: log no nv device
+            return;
+        }
+        if (!nv::perf::profiler::D3D12IsGpuSupported(m_ctx.device))
+        {
+            // TODO: log unsupported nv device
+            return;
+        }
+        if (render_engine_settings.nvperf_lock_clocks_to_rated_tdp)
+        {
+            nv::perf::D3D12SetDeviceClockState(m_ctx.device, NVPW_DEVICE_CLOCK_SETTING_LOCK_TO_RATED_TDP);
+        }
+        // TODO: implement nvperf
+        m_nvperf_active = true;
+#endif
+    }
 }
 
 Render_Engine::~Render_Engine()
 {
+#if OWGE_USE_NVPERF
+    if (m_nvperf_active &&
+        m_settings.nvperf_lock_clocks_to_rated_tdp)
+    {
+        nv::perf::D3D12SetDeviceClockState(m_ctx.device, NVPW_DEVICE_CLOCK_SETTING_DEFAULT);
+    }
+#endif
     destroy_d3d12_context(&m_ctx);
 }
 

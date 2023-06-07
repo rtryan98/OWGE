@@ -12,10 +12,17 @@
 
 namespace owge
 {
+struct Render_Engine_Settings
+{
+    bool nvperf_enabled;
+    bool nvperf_lock_clocks_to_rated_tdp;
+};
+
 class Render_Engine
 {
 public:
-    Render_Engine(HWND hwnd, const D3D12_Context_Settings& d3d12_context_settings);
+    Render_Engine(HWND hwnd, const D3D12_Context_Settings& d3d12_context_settings,
+        const Render_Engine_Settings& render_engine_settings);
     ~Render_Engine();
 
     // Delete special member functions. An instance of this can't be copied nor moved.
@@ -33,6 +40,8 @@ public:
 
 private:
     D3D12_Context m_ctx;
+    Render_Engine_Settings m_settings;
+    bool m_nvperf_active;
 
     std::unique_ptr<Descriptor_Allocator> m_cbv_srv_uav_descriptor_allocator;
     std::unique_ptr<Descriptor_Allocator> m_sampler_descriptor_allocator;

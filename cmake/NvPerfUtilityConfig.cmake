@@ -17,8 +17,8 @@
 set(NvPerfUtility_FOUND ON)
 message(STATUS "Found NvPerfUtility")
 
-SET(NvPerfUtility_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../NvPerfUtility/include")
-SET(NvPerfUtility_IMPORTS_DIR "${CMAKE_CURRENT_LIST_DIR}/../NvPerfUtility/imports")
+SET(NvPerfUtility_INCLUDE_DIRS "${_NVPERF_SDK_PATH}/Samples/NvPerfUtility/include")
+SET(NvPerfUtility_IMPORTS_DIR "${_NVPERF_SDK_PATH}/Samples/NvPerfUtility/imports")
 
 add_library(NvPerfUtility INTERFACE)
 set_target_properties(NvPerfUtility PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${NvPerfUtility_INCLUDE_DIRS}")

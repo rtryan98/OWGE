@@ -5,8 +5,14 @@
 
 int32_t main()
 {
-    owge::Window window = {};
-    std::unique_ptr<owge::Render_Engine> render_engine;
+    owge::Window_Settings window_settings = {
+        .width = 1920,
+        .height = 1080,
+        .title = "OWGE Tech Demo",
+        .userproc = nullptr
+    };
+    auto window = std::make_unique<owge::Window>(
+        window_settings);
     owge::D3D12_Context_Settings d3d12_settings = {
         .enable_validation = true,
         .enable_gpu_based_validation = false,
@@ -14,6 +20,17 @@ int32_t main()
         .d3d_feature_level = D3D_FEATURE_LEVEL_12_2,
         .static_samplers = {}
     };
-    render_engine = std::make_unique<owge::Render_Engine>(window.get_hwnd(), d3d12_settings);
+    owge::Render_Engine_Settings render_engine_settings = {
+        .nvperf_enabled = true,
+        .nvperf_lock_clocks_to_rated_tdp = false
+    };
+    auto render_engine = std::make_unique<owge::Render_Engine>(
+        window->get_hwnd(),
+        d3d12_settings,
+        render_engine_settings);
+    while (window->get_data().alive)
+    {
+        window->poll_events();
+    }
     return 0;
 }

@@ -224,8 +224,9 @@ if(OWGE_USE_NVPERF)
         owge_render_engine PUBLIC
         OWGE_USE_NVPERF=1)
     target_include_directories(
-        owge_render_engine PRIVATE
+        owge_render_engine PUBLIC
         ${NvPerf_INCLUDE_DIRS}
+        ${NvPerfUtility_INCLUDE_DIRS}
     )
     target_link_libraries(
         owge_render_engine PUBLIC
