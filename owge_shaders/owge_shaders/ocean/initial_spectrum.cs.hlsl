@@ -1,20 +1,27 @@
 #include "owge_shaders/bindless.hlsli"
 #include "owge_shaders/ocean/oceanography.hlsli"
 
+struct Spectrum_Parameters
+{
+    float wind_speed;                   // U
+    float fetch;                        // F
+    float v_yu_karaev_spectrum_omega_m; // 0.61826 + 0.0000003529 * F - 0.00197508 * sqrt(F) + (62.554 / sqrt(F)) - (290.2 / F)
+};
+
 struct Ocean_Parameters
 {
-    float gravity;      // g
-    float wind_speed;   // U
-    float ocean_depth;  // h
-    float fetch;        // F
-    float lengthscale;  // L
-    float2 size;        // N = M = 2^n
+    uint  size;                         // N = M = 2^n
+    float lengthscale;                  // L
+    float gravity;                      // g
+    float ocean_depth;                  // h
+    Spectrum_Parameters spectra[2];
 };
 
 struct Bindset
 {
     Raw_Buffer params;
     RW_Texture spectrum_tex;
+    RW_Texture angular_frequency_tex;
 };
 
 struct Push_Constants
@@ -32,21 +39,31 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_index);
     Ocean_Parameters pars = bnd.params.load_uniform<Ocean_Parameters>();
 
+    int2 id_shifted = int2(id.xy) - int2(pars.size, pars.size);
     float delta_k = 2.0f * mc_pi / pars.lengthscale;
-    float2 k = (float2(id.x, id.y) - (pars.size / 2.0f)) * delta_k;
+    float2 k = id_shifted * delta_k / 2.0;
     float k_len = length(k);
 
     float omega = oceanography_dispersion_capillary(k_len, pars.gravity, pars.ocean_depth);
     float omega_d_dk = oceanography_dispersion_capillary_d_dk(k_len, pars.gravity, pars.ocean_depth);
-    float omega_peak = oceanography_jonswap_omega_peak(pars.gravity, pars.wind_speed, pars.fetch);
+    float omega_peak = oceanography_jonswap_omega_peak(pars.gravity, pars.spectra[0].wind_speed, pars.spectra[0].fetch);
     float theta = atan2(k.y, k.x);
 
     float non_directional_spectrum = oceanography_tma_spectrum(
-        omega, omega_peak, pars.wind_speed, pars.gravity, pars.fetch, pars.ocean_depth);
+        omega, omega_peak, pars.spectra[0].wind_speed, pars.gravity, pars.spectra[0].fetch, pars.ocean_depth);
     float directional_spectrum = oceanography_donelan_banner_directional_spreading(
         omega, omega_peak, theta);
     float spectrum = non_directional_spectrum * directional_spectrum;
     spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / omega) * pow(delta_k, 2.0f));
-    float2 noise = float2(1.0f, 1.0f);
-    bnd.spectrum_tex.store_2d(id.xy, noise * spectrum);
+    float2 final_spectrum = float2(1.0f, 1.0f) * spectrum;
+
+    if(!all(id_shifted))
+    {
+        // We need to set the 0th wavevector to 0.
+        // This does not break the calculation either, as this only corresponds to the DC-part of the spectrum.
+        final_spectrum = float2(0.0, 0.0);
+    }
+
+    bnd.spectrum_tex.store_2d(id.xy, final_spectrum);
+    bnd.angular_frequency_tex.store_2d(id.xy, omega);
 }

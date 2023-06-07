@@ -109,6 +109,28 @@ float oceanography_tma_spectrum(float omega, float omega_peak, float u, float g,
     return phi * oceanography_jonswap_spectrum(omega, omega_peak, u, g, f);
 }
 
+// omega_m saturates the floating point range and should be precalculated on CPU.
+// It is calculated by 0.61826 + 0.0000003529 * f - 0.00197508 * sqrt(f) + (62.554 / sqrt(f)) - (290.2 / f)
+float oceanography_v_yu_karaev_spectrum(float omega, float omega_peak, float omega_m, float u, float g, float f)
+{
+    static const float omega_gc = 64.0;
+    static const float omega_c = 298.0;
+    float alpha_m = 0.3713 + 0.29024 * u + (0.2902 / u);
+
+    float alpha_1 = oceanography_jonswap_spectrum(omega, omega_peak, u, g, f);
+    float alpha_2 = oceanography_jonswap_spectrum(1.2 * omega_m, omega_peak, u, g, f) * pow(1.2 * omega_m, 4.0);
+    float alpha_3 = alpha_2 * alpha_m * omega_m;
+    float alpha_4 = alpha_3 / pow(omega_gc, 2.3);
+    // float alpha_5 = alpha_3; // == alpha_4 * pow(omega_gc, 2.3)
+
+    return omega <= 1.2 * omega_m
+        ? alpha_1
+        : omega <= alpha_m * omega_m
+            ? alpha_2 / pow(omega, 4.0)
+            : (omega <= omega_gc || omega > omega_c)
+                ? alpha_3 / pow(omega, 5.0)
+                : alpha_4 / pow(omega, 2.7);
+}
 
 // Directional wave spectra
 
