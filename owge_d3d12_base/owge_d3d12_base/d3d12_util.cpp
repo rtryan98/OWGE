@@ -44,6 +44,10 @@ DWORD wait_for_d3d12_fence(ID3D12Fence1* fence, uint64_t value, uint32_t timeout
             CloseHandle(event_handle);
         }
     }
+    else
+    {
+        result = WAIT_OBJECT_0;
+    }
     return result;
 }
 
