@@ -89,6 +89,9 @@ macro(setup_owge_target TARGET)
         ${TARGET} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET}
     )
+    if(MSVC)
+        set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
 endmacro()
 
 macro(add_owge_lib TARGET)
@@ -232,6 +235,11 @@ if(OWGE_USE_NVPERF)
     target_link_libraries(
         owge_render_engine PUBLIC
         ${NvPerf_LIBRARIES}
+        ${NvPerfUtility_LIBRARIES}
     )
     deploynvperf(owge_tech_demo NvPerf-shared)
+endif()
+
+if(MSVC)
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT owge_tech_demo)
 endif()
