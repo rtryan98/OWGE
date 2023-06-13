@@ -1,5 +1,7 @@
 #include "owge_render_engine/render_engine.hpp"
 
+#include <utility>
+
 #if OWGE_USE_NVPERF
 #pragma warning(push, 3) // NvPerf sample code does not compile under W4
 #include <nvperf_host_impl.h>
@@ -9,9 +11,6 @@
 
 namespace owge
 {
-static constexpr uint32_t MAX_CONCURRENT_GPU_FRAMES = 2;
-static constexpr uint32_t MAX_SWAPCHAIN_BUFFERS = MAX_CONCURRENT_GPU_FRAMES + 1;
-
 static constexpr uint32_t MAX_BUFFERS = 1048576;
 static constexpr uint32_t MAX_TEXTURES = 1048576;
 static constexpr uint32_t MAX_PIPELINES = 262144;
@@ -53,6 +52,15 @@ Render_Engine::Render_Engine(HWND hwnd,
     m_dsv_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
         m_dsv_descriptor_heap.Get(), m_ctx.device);
 
+    for (auto i = 0; i < MAX_CONCURRENT_GPU_FRAMES; ++i)
+    {
+        auto& frame_ctx = m_frame_contexts[i];
+        frame_ctx.direct_queue_cmd_alloc = std::make_unique<Command_Allocator>(
+            m_ctx.device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+        m_ctx.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&frame_ctx.direct_queue_fence));
+        frame_ctx.frame_number = 0;
+    }
+
     if (render_engine_settings.nvperf_enabled)
     {
 #if OWGE_USE_NVPERF
@@ -60,6 +68,11 @@ Render_Engine::Render_Engine(HWND hwnd,
             d3d12_context_settings.enable_gpu_based_validation)
         {
             // TODO: nvperf does not support validation. Post warning.
+            return;
+        }
+        if (!nv::perf::InitializeNvPerf())
+        {
+            // TODO: log failed init.
             return;
         }
         if (!nv::perf::D3D12IsNvidiaDevice(m_ctx.device))
@@ -84,6 +97,8 @@ Render_Engine::Render_Engine(HWND hwnd,
 
 Render_Engine::~Render_Engine()
 {
+    d3d12_context_wait_idle(&m_ctx);
+
 #if OWGE_USE_NVPERF
     if (m_nvperf_active &&
         m_settings.nvperf_lock_clocks_to_rated_tdp)
@@ -91,56 +106,66 @@ Render_Engine::~Render_Engine()
         nv::perf::D3D12SetDeviceClockState(m_ctx.device, NVPW_DEVICE_CLOCK_SETTING_DEFAULT);
     }
 #endif
+
+    m_swapchain = nullptr;
     destroy_d3d12_context(&m_ctx);
+}
+
+void Render_Engine::add_procedure(Render_Procedure* proc)
+{
+    m_procedures.push_back(proc);
 }
 
 void Render_Engine::render()
 {
+    auto& frame_ctx = m_frame_contexts[m_current_frame_index];
+
+    if (wait_for_d3d12_fence(frame_ctx.direct_queue_fence.Get(), frame_ctx.frame_number, INFINITE) != WAIT_OBJECT_0)
+    {
+        // TODO: wait error. Warn about possible desync?
+    }
+    frame_ctx.direct_queue_cmd_alloc->reset();
+
     if (m_swapchain->try_resize())
     {
         // TODO: client window area dependent resources
     }
     m_swapchain->acquire_next_image();
 
-    ID3D12GraphicsCommandList9* cmd{};
+    auto procedure_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate();
+    auto upload_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate();
 
-    auto swapchain_res = m_swapchain->get_acquired_resources();
-    D3D12_TEXTURE_BARRIER swapchain_barrier = {
-        .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-        .SyncAfter = D3D12_BARRIER_SYNC_RENDER_TARGET,
-        .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-        .AccessAfter = D3D12_BARRIER_ACCESS_RENDER_TARGET,
-        .LayoutBefore = D3D12_BARRIER_LAYOUT_UNDEFINED,
-        .LayoutAfter = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
-        .pResource = swapchain_res.buffer,
-        .Subresources = {
-            .IndexOrFirstMipLevel = 0xFFFFFFFF,
-            .NumMipLevels = 0,
-            .FirstArraySlice = 0,
-            .NumArraySlices = 0,
-            .FirstPlane = 0,
-            .NumPlanes = 0
-        },
-        .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
+    Render_Procedure_Payload proc_payload = {
+        .render_engine = this,
+        .cmd = procedure_cmd.cmd,
+        .barrier_builder = nullptr,
+        .swapchain = m_swapchain.get()
     };
-    D3D12_BARRIER_GROUP swapchain_barrier_group = {
-        .Type = D3D12_BARRIER_TYPE_TEXTURE,
-        .NumBarriers = 1,
-        .pTextureBarriers = &swapchain_barrier
-    };
-
-    cmd->Barrier(1, &swapchain_barrier_group);
-    float clear_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    cmd->ClearRenderTargetView(swapchain_res.rtv_descriptor, clear_color, 0, nullptr);
-
-    for (auto& procedure : m_procedures)
+    for (auto procedure : m_procedures)
     {
-        procedure->process(cmd);
+        procedure->process(proc_payload);
     }
 
-    swapchain_barrier.LayoutBefore = D3D12_BARRIER_LAYOUT_RENDER_TARGET;
-    swapchain_barrier.LayoutAfter = D3D12_BARRIER_LAYOUT_PRESENT;
-    cmd->Barrier(1, &swapchain_barrier_group);
+    upload_cmd.cmd->Close();
+    procedure_cmd.cmd->Close();
+    auto cmds = std::to_array({
+        static_cast<ID3D12CommandList*>(upload_cmd.cmd),
+        static_cast<ID3D12CommandList*>(procedure_cmd.cmd) });
+    m_ctx.direct_queue->ExecuteCommandLists(uint32_t(cmds.size()), cmds.data());
+
+    auto swapchain = m_swapchain->get_swapchain();
+    DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
+    swapchain->GetDesc1(&swapchain_desc);
+    auto allow_tearing = swapchain_desc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+        ? DXGI_PRESENT_ALLOW_TEARING
+        : 0u;
+    swapchain->Present(0, allow_tearing);
+
+    m_current_frame += 1;
+    m_current_frame_index = m_current_frame % MAX_CONCURRENT_GPU_FRAMES;
+    frame_ctx.frame_number += 1;
+
+    m_ctx.direct_queue->Signal(frame_ctx.direct_queue_fence.Get(), frame_ctx.frame_number);
 }
 
 Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
@@ -326,7 +351,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
         case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE:
             [[fallthrough]];
         default:
-            // TODO: insert warning, assert or similar.
+            std::unreachable();
             break;
         }
         m_ctx.device->CreateShaderResourceView(texture.resource, &srv_desc, srv.cpu_handle);
@@ -386,7 +411,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
         case D3D12_UAV_DIMENSION_BUFFER:
             [[fallthrough]];
         default:
-            // TODO: insert warning, assert or similar.
+            std::unreachable();
             break;
         }
         m_ctx.device->CreateUnorderedAccessView(texture.resource, nullptr, &uav_desc, uav.cpu_handle);
@@ -442,6 +467,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             };
             break;
         default:
+            std::unreachable();
             break;
         }
         m_ctx.device->CreateRenderTargetView(texture.resource, &rtv_desc, rtv.cpu_handle);
@@ -492,6 +518,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             };
             break;
         default:
+            std::unreachable();
             break;
         }
         m_ctx.device->CreateDepthStencilView(texture.resource, &dsv_desc, dsv.cpu_handle);

@@ -2,6 +2,7 @@
 
 #include "owge_render_engine/render_procedure/render_procedure.hpp"
 #include "owge_render_engine/resource_allocator.hpp"
+#include "owge_render_engine/command_allocator.hpp"
 
 #include <owge_d3d12_base/d3d12_ctx.hpp>
 #include <owge_d3d12_base/d3d12_util.hpp>
@@ -12,11 +13,23 @@
 
 namespace owge
 {
+static constexpr uint32_t MAX_CONCURRENT_GPU_FRAMES = 2;
+static constexpr uint32_t MAX_SWAPCHAIN_BUFFERS = MAX_CONCURRENT_GPU_FRAMES + 1;
+
 struct Render_Engine_Settings
 {
     bool nvperf_enabled;
     bool nvperf_lock_clocks_to_rated_tdp;
 };
+
+struct Render_Engine_Frame_Context
+{
+    std::unique_ptr<Command_Allocator> direct_queue_cmd_alloc;
+    Com_Ptr<ID3D12Fence1> direct_queue_fence;
+    uint64_t frame_number;
+};
+
+class Barrier_Builder;
 
 class Render_Engine
 {
@@ -31,6 +44,7 @@ public:
     Render_Engine& operator=(const Render_Engine&) = delete;
     Render_Engine& operator=(Render_Engine&&) = delete;
 
+    void add_procedure(Render_Procedure* proc);
     void render();
 
     Buffer_Handle create_buffer(const Buffer_Desc& desc);
@@ -51,10 +65,14 @@ private:
     std::unique_ptr<Descriptor_Allocator> m_dsv_descriptor_allocator;
 
     std::unique_ptr<D3D12_Swapchain> m_swapchain;
-    std::vector<std::unique_ptr<Render_Procedure>> m_procedures;
+    std::vector<Render_Procedure*> m_procedures;
 
     Resource_Allocator<Buffer> m_buffers;
     Resource_Allocator<Texture> m_textures;
     Resource_Allocator<Pipeline> m_pipelines;
+
+    uint64_t m_current_frame = 0;
+    uint32_t m_current_frame_index = 0;
+    std::array<Render_Engine_Frame_Context, MAX_CONCURRENT_GPU_FRAMES> m_frame_contexts;
 };
 }
