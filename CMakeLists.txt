@@ -203,6 +203,7 @@ target_link_libraries(
     owge_d3d12_base
     owge_window
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/lib/x64/dstorage.lib
+    unordered_dense
 )
 
 add_owge_exe(owge_tech_demo)
