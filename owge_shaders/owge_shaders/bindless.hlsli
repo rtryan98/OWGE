@@ -127,6 +127,24 @@ struct RW_Raw_Buffer
         RWByteAddressBuffer buffer = ResourceDescriptorHeap[handle.write_index()];
         buffer.Store(0, value);
     }
+
+    template<typename T>
+    uint interlocked_add(uint offset, uint value)
+    {
+        RWByteAddressBuffer buffer = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
+        uint prev;
+        buffer.InterlockedAdd(offset, value, prev);
+        return prev;
+    }
+
+    template<typename T>
+    uint interlocked_add_uniform(uint offset, uint value)
+    {
+        RWByteAddressBuffer buffer = ResourceDescriptorHeap[handle.write_index()];
+        uint prev;
+        buffer.InterlockedAdd(offset, value, prev);
+        return prev;
+    }
 };
 
 struct Sampler
