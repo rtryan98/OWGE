@@ -28,7 +28,7 @@ DStorage_GPU_Asset_Load::DStorage_GPU_Asset_Load(IDStorageFactory* dstorage_fact
         "Error creating DStorageStatusArray for DStorage_GPU_Asset_Load.");
 }
 
-void DStorage_GPU_Asset_Load::process(ID3D12GraphicsCommandList9* cmd)
+void DStorage_GPU_Asset_Load::process(const Render_Procedure_Payload& payload)
 {
     std::vector<std::vector<D3D12_BUFFER_BARRIER>> buffer_barrier_groups;
     std::vector<std::vector<D3D12_TEXTURE_BARRIER>> texture_barrier_groups;
@@ -40,19 +40,19 @@ void DStorage_GPU_Asset_Load::process(ID3D12GraphicsCommandList9* cmd)
 
     auto removed_elements = std::ranges::remove_if(m_payloads.begin(), m_payloads.end(),
         [this, &buffer_barrier_groups, &texture_barrier_groups, &barrier_groups]
-        (DStorage_GPU_Asset_Load_Payload& payload) -> bool {
+        (DStorage_GPU_Asset_Load_Payload& dstorage_payload) -> bool {
             bool removed = false;
-            if (m_status_array->IsComplete(payload.status_array_index))
+            if (m_status_array->IsComplete(dstorage_payload.status_array_index))
             {
                 removed = true;
 
-                auto& buffer_barriers = buffer_barrier_groups.emplace_back(std::move(payload.buffer_barriers));
+                auto& buffer_barriers = buffer_barrier_groups.emplace_back(std::move(dstorage_payload.buffer_barriers));
                 auto& buffer_barrier_group = barrier_groups.emplace_back();
                 buffer_barrier_group.Type = D3D12_BARRIER_TYPE_BUFFER;
                 buffer_barrier_group.NumBarriers = uint32_t(buffer_barriers.size());
                 buffer_barrier_group.pBufferBarriers = buffer_barriers.data();
 
-                auto& texture_barriers = texture_barrier_groups.emplace_back(std::move(payload.texture_barriers));
+                auto& texture_barriers = texture_barrier_groups.emplace_back(std::move(dstorage_payload.texture_barriers));
                 auto& texture_barrier_group = barrier_groups.emplace_back();
                 texture_barrier_group.Type = D3D12_BARRIER_TYPE_TEXTURE;
                 texture_barrier_group.NumBarriers = uint32_t(texture_barriers.size());
@@ -62,7 +62,7 @@ void DStorage_GPU_Asset_Load::process(ID3D12GraphicsCommandList9* cmd)
         });
     m_payloads.erase(removed_elements.begin(), removed_elements.end());
 
-    cmd->Barrier(uint32_t(barrier_groups.size()), barrier_groups.data());
+    payload.cmd->Barrier(uint32_t(barrier_groups.size()), barrier_groups.data());
 }
 
 void DStorage_GPU_Asset_Load::upload_resources(std::span<GPU_Upload_Request>&& requests)

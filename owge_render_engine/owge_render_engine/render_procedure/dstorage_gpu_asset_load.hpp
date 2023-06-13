@@ -50,7 +50,7 @@ public:
     DStorage_GPU_Asset_Load(IDStorageFactory* dstorage_factory, ID3D12Device* device);
     virtual ~DStorage_GPU_Asset_Load() = default;
 
-    virtual void process(ID3D12GraphicsCommandList9* cmd) override;
+    virtual void process(const Render_Procedure_Payload& payload) override;
 
     void upload_resources(std::span<GPU_Upload_Request>&& requests);
 
