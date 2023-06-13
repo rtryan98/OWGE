@@ -46,6 +46,21 @@ public:
         };
     }
 
+    struct Emplaced_Handle
+    {
+        Handle_Type handle;
+        T& value;
+    };
+    [[nodiscard]] Emplaced_Handle emplace(
+        uint8_t flags) noexcept
+    {
+        Handle_Type handle = insert(flags, {});
+        return {
+            .handle = handle,
+            .value = (*this)[handle]
+        };
+    }
+
     void remove(Handle_Type handle) noexcept
     {
         auto& data = m_storage[handle.idx];

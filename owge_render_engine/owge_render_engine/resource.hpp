@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <d3d12.h>
+#include <vector>
 
 namespace owge
 {
@@ -24,6 +25,14 @@ struct Base_Resource_Handle
     [[nodiscard]] bool operator!=(Base_Resource_Handle other) const
     {
         return !(*this == other);
+    }
+
+    [[nodiscard]] bool is_null_handle() const
+    {
+        return alive == 0
+            && flags == 0
+            && gen == 0
+            && idx == 0;
     }
 };
 
@@ -62,7 +71,6 @@ struct Texture_Desc
     D3D12_DSV_DIMENSION dsv_dimension;
     D3D12_BARRIER_LAYOUT initial_layout;
     DXGI_FORMAT format;
-    Resource_Usage usage;
 };
 
 struct Texture
@@ -74,22 +82,56 @@ struct Texture
 };
 using Texture_Handle = Base_Resource_Handle<Texture>;
 
+struct Shader_Desc
+{
+    std::string path;
+};
+
+struct Shader
+{
+    std::string path;
+    std::vector<uint8_t> bytecode;
+};
+using Shader_Handle = Base_Resource_Handle<Shader>;
+
 struct Graphics_Pipeline_Desc
 {
-
+    struct
+    {
+        Shader_Handle vs;
+        Shader_Handle ps;
+        Shader_Handle ds;
+        Shader_Handle hs;
+        Shader_Handle gs;
+    } shaders;
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE primitive_topology_type;
+    D3D12_BLEND_DESC blend_state;
+    D3D12_RASTERIZER_DESC rasterizer_state;
+    D3D12_DEPTH_STENCIL_DESC depth_stencil_state;
+    DXGI_FORMAT rtv_formats[8];
+    DXGI_FORMAT dsv_format;
 };
 
 struct Compute_Pipeline_Desc
 {
-    void* bytecode;
-    std::size_t bytecode_length;
-    void* cached_bytecode;
-    std::size_t cached_bytecode_length;
+    Shader_Handle cs;
+};
+
+enum class Pipeline_Type
+{
+    Graphics,
+    Compute
 };
 
 struct Pipeline
 {
-    ID3D12PipelineState* resource;
+    ID3D12PipelineState* pso;
+    Pipeline_Type type;
+    union
+    {
+        Graphics_Pipeline_Desc graphics;
+        Compute_Pipeline_Desc compute;
+    };
 };
 using Pipeline_Handle = Base_Resource_Handle<Pipeline>;
 }

@@ -1,6 +1,9 @@
 #include "owge_render_engine/render_engine.hpp"
 
+#include <algorithm>
 #include <utility>
+#include <fstream>
+#include <ranges>
 
 #if OWGE_USE_NVPERF
 #pragma warning(push, 3) // NvPerf sample code does not compile under W4
@@ -14,6 +17,7 @@ namespace owge
 static constexpr uint32_t MAX_BUFFERS = 1048576;
 static constexpr uint32_t MAX_TEXTURES = 1048576;
 static constexpr uint32_t MAX_PIPELINES = 262144;
+static constexpr uint32_t MAX_SHADERS = 524288;
 
 static constexpr uint32_t NO_SRV = ~0u;
 static constexpr uint32_t NO_UAV = ~0u;
@@ -27,7 +31,8 @@ Render_Engine::Render_Engine(HWND hwnd,
     m_swapchain(),
     m_buffers(MAX_BUFFERS),
     m_textures(MAX_TEXTURES),
-    m_pipelines(MAX_PIPELINES)
+    m_pipelines(MAX_PIPELINES),
+    m_shaders(MAX_SHADERS)
 {
     m_ctx = create_d3d12_context(&d3d12_context_settings);
     m_swapchain = std::make_unique<D3D12_Swapchain>(
@@ -68,21 +73,31 @@ Render_Engine::Render_Engine(HWND hwnd,
             d3d12_context_settings.enable_gpu_based_validation)
         {
             // TODO: nvperf does not support validation. Post warning.
+            printf("nvperf cannot be enabled at the same time as validation layers.\n");
             return;
         }
         if (!nv::perf::InitializeNvPerf())
         {
             // TODO: log failed init.
+            printf("nvperf failed to initialize.\n");
+            return;
+        }
+        if (!nv::perf::D3D12LoadDriver())
+        {
+            // TODO: log no driver
+            printf("nvperf driver load failed.\n");
             return;
         }
         if (!nv::perf::D3D12IsNvidiaDevice(m_ctx.device))
         {
             // TODO: log no nv device
+            printf("nvperf enabled but device is not a nvidia device.\n");
             return;
         }
         if (!nv::perf::profiler::D3D12IsGpuSupported(m_ctx.device))
         {
             // TODO: log unsupported nv device
+            printf("nvperf enabled but gpu is unsupported.\n");
             return;
         }
         if (render_engine_settings.nvperf_lock_clocks_to_rated_tdp)
@@ -91,6 +106,7 @@ Render_Engine::Render_Engine(HWND hwnd,
         }
         // TODO: implement nvperf
         m_nvperf_active = true;
+        printf("nvperf was loaded successfully.\n");
 #endif
     }
 }
@@ -98,6 +114,7 @@ Render_Engine::Render_Engine(HWND hwnd,
 Render_Engine::~Render_Engine()
 {
     d3d12_context_wait_idle(&m_ctx);
+    empty_deletion_queues(~0ull);
 
 #if OWGE_USE_NVPERF
     if (m_nvperf_active &&
@@ -125,6 +142,7 @@ void Render_Engine::render()
         // TODO: wait error. Warn about possible desync?
     }
     frame_ctx.direct_queue_cmd_alloc->reset();
+    empty_deletion_queues(m_current_frame);
 
     if (m_swapchain->try_resize())
     {
@@ -133,7 +151,7 @@ void Render_Engine::render()
     m_swapchain->acquire_next_image();
 
     auto procedure_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate();
-    auto upload_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate();
+    frame_ctx.upload_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate().cmd;
 
     Render_Procedure_Payload proc_payload = {
         .render_engine = this,
@@ -146,10 +164,10 @@ void Render_Engine::render()
         procedure->process(proc_payload);
     }
 
-    upload_cmd.cmd->Close();
+    frame_ctx.upload_cmd->Close();
     procedure_cmd.cmd->Close();
     auto cmds = std::to_array({
-        static_cast<ID3D12CommandList*>(upload_cmd.cmd),
+        static_cast<ID3D12CommandList*>(frame_ctx.upload_cmd),
         static_cast<ID3D12CommandList*>(procedure_cmd.cmd) });
     m_ctx.direct_queue->ExecuteCommandLists(uint32_t(cmds.size()), cmds.data());
 
@@ -192,6 +210,10 @@ Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
         .CreationNodeMask = 0,
         .VisibleNodeMask = 0
     };
+    if (desc.usage == Resource_Usage::Read_Write)
+    {
+        resource_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
     m_ctx.device->CreateCommittedResource3(
         &heap_properties, D3D12_HEAP_FLAG_NONE,
         &resource_desc, desc.initial_layout, nullptr,
@@ -259,6 +281,15 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
         .CreationNodeMask = 0,
         .VisibleNodeMask = 0
     };
+    resource_desc.Flags |= desc.uav_dimension != D3D12_UAV_DIMENSION_UNKNOWN
+        ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
+        : D3D12_RESOURCE_FLAG_NONE;
+    resource_desc.Flags |= desc.rtv_dimension != D3D12_RTV_DIMENSION_UNKNOWN
+        ? D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+        : D3D12_RESOURCE_FLAG_NONE;
+    resource_desc.Flags |= desc.dsv_dimension != D3D12_DSV_DIMENSION_UNKNOWN
+        ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+        : D3D12_RESOURCE_FLAG_NONE;
     m_ctx.device->CreateCommittedResource3(
         &heap_properties, D3D12_HEAP_FLAG_NONE,
         &resource_desc, desc.initial_layout, nullptr,
@@ -280,14 +311,14 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             break;
         case D3D12_SRV_DIMENSION_TEXTURE1D:
             srv_desc.Texture1D = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .ResourceMinLODClamp = 0.0f
             };
             break;
         case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
             srv_desc.Texture1DArray = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .FirstArraySlice = 0,
                 .ArraySize = desc.depth_or_array_layers,
@@ -296,7 +327,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             break;
         case D3D12_SRV_DIMENSION_TEXTURE2D:
             srv_desc.Texture2D = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .PlaneSlice = 0,
                 .ResourceMinLODClamp = 0.0f
@@ -304,7 +335,7 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             break;
         case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
             srv_desc.Texture2DArray = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .FirstArraySlice = 0,
                 .ArraySize = desc.depth_or_array_layers,
@@ -325,21 +356,21 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
             break;
         case D3D12_SRV_DIMENSION_TEXTURE3D:
             srv_desc.Texture3D = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .ResourceMinLODClamp = 0.0f
             };
             break;
         case D3D12_SRV_DIMENSION_TEXTURECUBE:
             srv_desc.TextureCube = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .ResourceMinLODClamp = 0.0f
             };
             break;
         case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
             srv_desc.TextureCubeArray = {
-                .MostDetailedMip = desc.mip_levels,
+                .MostDetailedMip = 0,
                 .MipLevels = ~0u,
                 .First2DArrayFace = 0,
                 .NumCubes = desc.depth_or_array_layers / 6,
@@ -528,26 +559,223 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
     return m_textures.insert(0, texture);
 }
 
-Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc)
+Shader_Handle Render_Engine::create_shader(const Shader_Desc& desc)
 {
-    Pipeline pipeline = {};
+    auto emplaced_handle = m_shaders.emplace(0);
+    emplaced_handle.value.path = desc.path;
+    emplaced_handle.value.bytecode = read_shader_from_file(desc.path);
+    return emplaced_handle.handle;
+}
 
-    D3D12_SHADER_BYTECODE bytecode = {
-        .pShaderBytecode = desc.bytecode,
-        .BytecodeLength = desc.bytecode_length
+Pipeline_Handle Render_Engine::create_pipeline(const Graphics_Pipeline_Desc& desc)
+{
+    Pipeline pipeline = {
+        .type = Pipeline_Type::Graphics
     };
-    D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc = {
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
         .pRootSignature = m_ctx.global_rootsig,
-        .CS = &bytecode,
+        .StreamOutput = {},
+        .BlendState = desc.blend_state,
+        .SampleMask = ~0u,
+        .RasterizerState = desc.rasterizer_state,
+        .DepthStencilState = desc.depth_stencil_state,
+        .InputLayout = {},
+        .IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+        .PrimitiveTopologyType = desc.primitive_topology_type,
+        .NumRenderTargets = 0,
+        .RTVFormats = {},
+        .DSVFormat = desc.dsv_format,
+        .SampleDesc = { .Count = 1, .Quality = 0 },
         .NodeMask = 0,
-        .CachedPSO = {
-            .pCachedBlob = desc.cached_bytecode,
-            .CachedBlobSizeInBytes = desc.cached_bytecode_length
-        },
+        .CachedPSO = {},
         .Flags = D3D12_PIPELINE_STATE_FLAG_NONE
     };
-    m_ctx.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.resource));
+    memcpy(&pso_desc.RTVFormats, &desc.rtv_formats, sizeof(DXGI_FORMAT) * 8);
+    if (!desc.shaders.vs.is_null_handle())
+    {
+        auto& shader = get_shader(desc.shaders.vs);
+        pso_desc.VS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    if (!desc.shaders.ps.is_null_handle())
+    {
+        auto& shader = get_shader(desc.shaders.ps);
+        pso_desc.PS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    if (!desc.shaders.ds.is_null_handle())
+    {
+        auto& shader = get_shader(desc.shaders.ds);
+        pso_desc.DS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    if (!desc.shaders.hs.is_null_handle())
+    {
+        auto& shader = get_shader(desc.shaders.hs);
+        pso_desc.HS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    if (!desc.shaders.gs.is_null_handle())
+    {
+        auto& shader = get_shader(desc.shaders.gs);
+        pso_desc.GS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    m_ctx.device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.pso));
 
     return m_pipelines.insert(0, pipeline);
+}
+
+Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc)
+{
+    Pipeline pipeline = {
+        .type = Pipeline_Type::Compute
+    };
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc = {
+        .pRootSignature = m_ctx.global_rootsig,
+        .NodeMask = 0,
+        .CachedPSO = {},
+        .Flags = D3D12_PIPELINE_STATE_FLAG_NONE
+    };
+    if (!desc.cs.is_null_handle())
+    {
+        auto& shader = get_shader(desc.cs);
+        pso_desc.CS = {
+            .pShaderBytecode = shader.bytecode.data(),
+            .BytecodeLength = shader.bytecode.size()
+        };
+    }
+    m_ctx.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.pso));
+
+    return m_pipelines.insert(0, pipeline);
+}
+
+void Render_Engine::destroy_buffer(Buffer_Handle handle)
+{
+    m_buffer_deletion_queue.push_back({ handle, m_current_frame + MAX_CONCURRENT_GPU_FRAMES });
+}
+
+void Render_Engine::destroy_texture(Texture_Handle handle)
+{
+    m_texture_deletion_queue.push_back({ handle, m_current_frame + MAX_CONCURRENT_GPU_FRAMES });
+}
+
+void Render_Engine::destroy_shader(Shader_Handle handle)
+{
+    m_shaders.remove(handle);
+}
+
+void Render_Engine::destroy_pipeline(Pipeline_Handle handle)
+{
+    m_pipeline_deletion_queue.push_back({ handle, m_current_frame + MAX_CONCURRENT_GPU_FRAMES });
+}
+
+const Buffer& Render_Engine::get_buffer(Buffer_Handle handle) const
+{
+    return m_buffers.at(handle);
+}
+
+Buffer& Render_Engine::get_buffer(Buffer_Handle handle)
+{
+    return m_buffers[handle];
+}
+
+const Texture& Render_Engine::get_texture(Texture_Handle handle) const
+{
+    return m_textures.at(handle);
+}
+
+Texture& Render_Engine::get_texture(Texture_Handle handle)
+{
+    return m_textures[handle];
+}
+
+const Pipeline& Render_Engine::get_pipeline(Pipeline_Handle handle) const
+{
+    return m_pipelines.at(handle);
+}
+
+Pipeline& Render_Engine::get_pipeline(Pipeline_Handle handle)
+{
+    return m_pipelines[handle];
+}
+
+const Shader& Render_Engine::get_shader(Shader_Handle handle) const
+{
+    return m_shaders.at(handle);
+}
+
+Shader& Render_Engine::get_shader(Shader_Handle handle)
+{
+    return m_shaders[handle];
+}
+
+std::vector<uint8_t> Render_Engine::read_shader_from_file(const std::string& path)
+{
+    std::vector<uint8_t> result;
+    std::ifstream file(path, std::ios::binary);
+    file.unsetf(std::ios::skipws);
+    std::streampos file_size;
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    result.reserve(file_size);
+    result.insert(
+        result.begin(),
+        std::istream_iterator<uint8_t>(file),
+        std::istream_iterator<uint8_t>());
+    file.close();
+    return result;
+}
+
+void Render_Engine::empty_deletion_queues(uint64_t frame)
+{
+    auto buffer_range = std::ranges::remove_if(m_buffer_deletion_queue, [this, frame](auto& element) {
+        if (frame >= element.frame)
+        {
+            auto buffer = m_buffers[element.handle];
+            buffer.resource->Release();
+            m_buffers.remove(element.handle);
+            return true;
+        }
+        return false;
+        });
+    m_buffer_deletion_queue.erase(buffer_range.begin(), buffer_range.end());
+
+    auto texture_range = std::ranges::remove_if(m_texture_deletion_queue, [this, frame](auto& element) {
+        if (frame >= element.frame)
+        {
+            auto texture = m_textures[element.handle];
+            texture.resource->Release();
+            m_textures.remove(element.handle);
+            return true;
+        }
+        return false;
+        });
+    m_texture_deletion_queue.erase(texture_range.begin(), texture_range.end());
+
+    auto pipeline_range = std::ranges::remove_if(m_pipeline_deletion_queue, [this, frame](auto& element) {
+        if (frame >= element.frame)
+        {
+            auto pso = m_pipelines[element.handle];
+            pso.pso->Release();
+            m_pipelines.remove(element.handle);
+            return true;
+        }
+        return false;
+        });
+    m_pipeline_deletion_queue.erase(pipeline_range.begin(), pipeline_range.end());
 }
 }
