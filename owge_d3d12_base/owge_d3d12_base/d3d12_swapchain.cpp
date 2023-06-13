@@ -65,7 +65,7 @@ bool D3D12_Swapchain::try_resize()
         auto wait_idle_result = wait_for_d3d12_queue_idle(m_device, m_direct_queue);
         assert(wait_idle_result == WAIT_OBJECT_0);
         m_buffers = {};
-        throw_if_failed(m_swapchain->ResizeBuffers(0, client_width, client_height, DXGI_FORMAT_UNKNOWN, 0),
+        throw_if_failed(m_swapchain->ResizeBuffers(0, client_width, client_height, DXGI_FORMAT_UNKNOWN, desc.Flags),
             "Error resizing Swapchain buffers.");
         recreate_resources();
     }
@@ -80,17 +80,24 @@ D3D12_Swapchain_Resources D3D12_Swapchain::get_acquired_resources() const
     };
 }
 
+IDXGISwapChain4* D3D12_Swapchain::get_swapchain() const
+{
+    return m_swapchain.Get();
+}
+
 void D3D12_Swapchain::recreate_resources()
 {
-    auto descriptor_cpu_handle = m_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+    auto descriptor_cpu_handle_start = m_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
     auto descriptor_increment = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     DXGI_SWAP_CHAIN_DESC1 desc;
     throw_if_failed(m_swapchain->GetDesc1(&desc),
         "Error acquiring Swapchain description for resource recreation.");
 
-    for (uint32_t i = 0; i < desc.BufferCount; ++i, descriptor_cpu_handle.ptr += descriptor_increment)
+    for (uint32_t i = 0; i < desc.BufferCount; ++i)
     {
+        auto descriptor_cpu_handle = descriptor_cpu_handle_start;
+        descriptor_cpu_handle.ptr += i * descriptor_increment;
         throw_if_failed(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i])),
             "Error acquiring Swapchain Buffer.");
         D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
@@ -102,6 +109,7 @@ void D3D12_Swapchain::recreate_resources()
             }
         };
         m_device->CreateRenderTargetView(m_buffers[i].Get(), &rtv_desc, descriptor_cpu_handle);
+        m_descriptors[i] = descriptor_cpu_handle;
     }
 }
 }

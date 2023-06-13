@@ -23,6 +23,7 @@ public:
     void acquire_next_image();
     [[nodiscard]] bool try_resize();
     [[nodiscard]] D3D12_Swapchain_Resources get_acquired_resources() const;
+    [[nodiscard]] IDXGISwapChain4* get_swapchain() const;
 
 private:
     void recreate_resources();
