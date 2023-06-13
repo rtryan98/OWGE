@@ -5,7 +5,7 @@
 namespace owge
 {
 Swapchain_Pass::Swapchain_Pass(const Swapchain_Pass_Settings& settings)
-    : m_settings(settings)
+    : Render_Procedure("Swapchain_Pass"), m_settings(settings)
 {}
 
 void Swapchain_Pass::process(const Render_Procedure_Payload& payload)
