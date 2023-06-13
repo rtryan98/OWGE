@@ -4,11 +4,17 @@
 
 namespace owge
 {
-Swapchain_Pass::Swapchain_Pass(const Swapchain_Pass_Settings& settings)
+Swapchain_Pass_Render_Procedure::Swapchain_Pass_Render_Procedure(
+    const Swapchain_Pass_Settings& settings)
     : Render_Procedure("Swapchain_Pass"), m_settings(settings)
 {}
 
-void Swapchain_Pass::process(const Render_Procedure_Payload& payload)
+void Swapchain_Pass_Render_Procedure::add_subprocedure(Render_Procedure* sub_procedure)
+{
+    m_sub_procedures.push_back(sub_procedure);
+}
+
+void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& payload)
 {
     auto swapchain_res = payload.swapchain->get_acquired_resources();
     D3D12_TEXTURE_BARRIER swapchain_barrier = {

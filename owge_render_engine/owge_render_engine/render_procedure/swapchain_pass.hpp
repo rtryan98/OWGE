@@ -10,12 +10,12 @@ struct Swapchain_Pass_Settings
     float clear_color[4];
 };
 
-class Swapchain_Pass : public Render_Procedure
+class Swapchain_Pass_Render_Procedure : public Render_Procedure
 {
 public:
-    Swapchain_Pass(const Swapchain_Pass_Settings& settings);
+    Swapchain_Pass_Render_Procedure(const Swapchain_Pass_Settings& settings);
 
-    void add_subprocedure();
+    void add_subprocedure(Render_Procedure* sub_procedure);
     virtual void process(const Render_Procedure_Payload& payload) override;
 
 private:
