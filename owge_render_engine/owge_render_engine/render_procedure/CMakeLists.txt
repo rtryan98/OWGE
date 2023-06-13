@@ -5,7 +5,8 @@ target_sources(
     opaque_geometry.cpp
     opaque_geometry.hpp
     render_procedure.hpp
+    swapchain_pass.cpp
+    swapchain_pass.hpp
     terrain.cpp
     terrain.hpp
 )
-
