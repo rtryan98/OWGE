@@ -44,9 +44,9 @@ void Swapchain_Pass::process(const Render_Procedure_Payload& payload)
     }
 
     swapchain_barrier.SyncBefore = D3D12_BARRIER_SYNC_RENDER_TARGET;
-    swapchain_barrier.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+    swapchain_barrier.SyncAfter = D3D12_BARRIER_SYNC_NONE;
     swapchain_barrier.AccessBefore = D3D12_BARRIER_ACCESS_RENDER_TARGET;
-    swapchain_barrier.AccessAfter = D3D12_BARRIER_ACCESS_COMMON;
+    swapchain_barrier.AccessAfter = D3D12_BARRIER_ACCESS_NO_ACCESS;
     swapchain_barrier.LayoutBefore = D3D12_BARRIER_LAYOUT_RENDER_TARGET;
     swapchain_barrier.LayoutAfter = D3D12_BARRIER_LAYOUT_PRESENT;
     payload.cmd->Barrier(1, &swapchain_barrier_group);
