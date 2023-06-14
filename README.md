@@ -1,6 +1,7 @@
 # Open World Game Engine
 A (highly experimental) game and rendering engine, made for open worlds.
-It makes use of features only available to recent GPUs and thus requires a DirectX Feature Level 12_2 capable GPU.
+It makes use of features only available to recent GPUs.
+As such, Shader Model 6.7 is required and because of that many GPUs might not be supported.
 
 ## Build
 Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
