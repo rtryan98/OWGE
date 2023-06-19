@@ -163,6 +163,12 @@ download_extract(
     d3d12_agility_1.610.2
 )
 
+download_extract(
+    https://www.nuget.org/api/v2/package/WinPixEventRuntime/1.0.230302001
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
+    win_pix_event_runtime
+)
+
 copy_dll_if_not_exist(
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/bin/x64/
     D3D12
