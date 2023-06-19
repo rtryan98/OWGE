@@ -1,0 +1,78 @@
+#include "owge_render_engine/staging_buffer_allocator.hpp"
+
+namespace owge
+{
+static constexpr uint64_t DEFAULT_BUFFER_SIZE = 16777216; // 16 MB // TODO: make value customizable?
+
+Staging_Buffer_Allocator::Staging_Buffer_Allocator(ID3D12Device12* device)
+    : m_device(device)
+{}
+
+Staging_Buffer_Allocation Staging_Buffer_Allocator::allocate(uint64_t size, uint64_t alignment)
+{
+    D3D12_HEAP_PROPERTIES heap_properties = {
+        .Type = D3D12_HEAP_TYPE_UPLOAD,
+        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+        .CreationNodeMask = 0,
+        .VisibleNodeMask = 0
+    };
+    D3D12_RESOURCE_DESC1 resource_desc = {
+        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+        .Alignment = 0,
+        .Width = DEFAULT_BUFFER_SIZE,
+        .Height = 1,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_UNKNOWN,
+        .SampleDesc = {},
+        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+        .SamplerFeedbackMipRegion = {}
+    };
+
+    if (size > DEFAULT_BUFFER_SIZE) // Handle overallocation
+    {
+        resource_desc.Width = size;
+        void* mapped_data = nullptr;
+        auto& new_resource = m_resources.emplace_back();
+        m_device->CreateCommittedResource3(
+            &heap_properties, D3D12_HEAP_FLAG_NONE,
+            &resource_desc, D3D12_BARRIER_LAYOUT_GENERIC_READ,
+            nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&new_resource));
+        new_resource->Map(0, nullptr, &mapped_data);
+        return {
+            .resource = new_resource,
+            .offset = 0,
+            .data = mapped_data
+        };
+    }
+    if (m_current_resource == nullptr || m_current_offset + size > DEFAULT_BUFFER_SIZE)
+    {
+        m_current_resource = m_resources.emplace_back();
+        m_device->CreateCommittedResource3(
+            &heap_properties, D3D12_HEAP_FLAG_NONE,
+            &resource_desc, D3D12_BARRIER_LAYOUT_GENERIC_READ,
+            nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_current_resource));
+        m_current_resource->Map(0, nullptr, &m_mapped_data);
+        m_current_offset = 0;
+    }
+    Staging_Buffer_Allocation allocation = {
+        .resource = m_current_resource,
+        .offset = m_current_offset,
+        .data = m_mapped_data
+    };
+    m_current_offset += size; // TODO: align.
+    alignment;
+    return allocation;
+}
+
+void Staging_Buffer_Allocator::reset()
+{
+    for (auto resource : m_resources)
+    {
+        resource->Release();
+    }
+    m_resources.clear();
+}
+}

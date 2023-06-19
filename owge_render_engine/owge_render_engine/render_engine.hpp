@@ -3,6 +3,8 @@
 #include "owge_render_engine/render_procedure/render_procedure.hpp"
 #include "owge_render_engine/resource_allocator.hpp"
 #include "owge_render_engine/command_allocator.hpp"
+#include "owge_render_engine/bindless.hpp"
+#include "owge_render_engine/staging_buffer_allocator.hpp"
 
 #include <owge_d3d12_base/d3d12_ctx.hpp>
 #include <owge_d3d12_base/d3d12_util.hpp>
@@ -28,13 +30,7 @@ struct Render_Engine_Frame_Context
     Com_Ptr<ID3D12Fence1> direct_queue_fence;
     uint64_t frame_number;
     ID3D12GraphicsCommandList9* upload_cmd;
-};
-
-template<typename T>
-struct Deletion_Queue_Resource
-{
-    T handle;
-    uint64_t frame;
+    std::unique_ptr<Staging_Buffer_Allocator> staging_buffer_allocator;
 };
 
 class Render_Engine
@@ -52,6 +48,8 @@ public:
 
     void add_procedure(Render_Procedure* proc);
     void render();
+
+    void update_bindings(const Bindset& bindset);
 
     Buffer_Handle create_buffer(const Buffer_Desc& desc);
     Texture_Handle create_texture(const Texture_Desc& desc);
@@ -78,6 +76,13 @@ private:
     void empty_deletion_queues(uint64_t frame);
 
 private:
+    template<typename T>
+    struct Deletion_Queue_Resource
+    {
+        T resource;
+        uint64_t frame;
+    };
+
     D3D12_Context m_ctx;
     Render_Engine_Settings m_settings;
     bool m_nvperf_active;
@@ -100,6 +105,9 @@ private:
     uint64_t m_current_frame = 0;
     uint32_t m_current_frame_index = 0;
     std::array<Render_Engine_Frame_Context, MAX_CONCURRENT_GPU_FRAMES> m_frame_contexts;
+
+    std::unique_ptr<Bindset_Allocator> m_bindset_allocator;
+    std::unique_ptr<Bindset_Stager> m_bindset_stager;
 
     std::vector<Deletion_Queue_Resource<Buffer_Handle>> m_buffer_deletion_queue;
     std::vector<Deletion_Queue_Resource<Texture_Handle>> m_texture_deletion_queue;

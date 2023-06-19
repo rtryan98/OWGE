@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <d3d12.h>
+#include <string>
 #include <vector>
 
 namespace owge

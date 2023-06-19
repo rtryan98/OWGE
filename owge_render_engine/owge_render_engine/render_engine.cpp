@@ -64,7 +64,11 @@ Render_Engine::Render_Engine(HWND hwnd,
             m_ctx.device, D3D12_COMMAND_LIST_TYPE_DIRECT);
         m_ctx.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&frame_ctx.direct_queue_fence));
         frame_ctx.frame_number = 0;
+        frame_ctx.staging_buffer_allocator = std::make_unique<Staging_Buffer_Allocator>(
+            m_ctx.device);
     }
+
+    m_bindset_stager = std::make_unique<Bindset_Stager>();
 
     if (render_engine_settings.nvperf_enabled)
     {
@@ -142,6 +146,7 @@ void Render_Engine::render()
         // TODO: wait error. Warn about possible desync?
     }
     frame_ctx.direct_queue_cmd_alloc->reset();
+    frame_ctx.staging_buffer_allocator->reset();
     empty_deletion_queues(m_current_frame);
 
     if (m_swapchain->try_resize())
@@ -159,10 +164,18 @@ void Render_Engine::render()
         .barrier_builder = nullptr,
         .swapchain = m_swapchain.get()
     };
+    procedure_cmd.cmd->SetComputeRootSignature(m_ctx.global_rootsig);
+    procedure_cmd.cmd->SetGraphicsRootSignature(m_ctx.global_rootsig);
+    auto descriptor_heaps = std::to_array({
+        m_ctx.cbv_srv_uav_descriptor_heap, m_ctx.sampler_descriptor_heap
+        });
+    procedure_cmd.cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
     for (auto procedure : m_procedures)
     {
         procedure->process(proc_payload);
     }
+
+    m_bindset_stager->process(procedure_cmd.cmd);
 
     frame_ctx.upload_cmd->Close();
     procedure_cmd.cmd->Close();
@@ -184,6 +197,12 @@ void Render_Engine::render()
     frame_ctx.frame_number += 1;
 
     m_ctx.direct_queue->Signal(frame_ctx.direct_queue_fence.Get(), frame_ctx.frame_number);
+}
+
+void Render_Engine::update_bindings(const Bindset& bindset)
+{
+    auto& frame_ctx = m_frame_contexts[m_current_frame_index];
+    m_bindset_stager->stage_bindset(this, bindset, frame_ctx.staging_buffer_allocator.get());
 }
 
 Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
@@ -745,9 +764,9 @@ void Render_Engine::empty_deletion_queues(uint64_t frame)
     auto buffer_range = std::ranges::remove_if(m_buffer_deletion_queue, [this, frame](auto& element) {
         if (frame >= element.frame)
         {
-            auto buffer = m_buffers[element.handle];
+            auto buffer = m_buffers[element.resource];
             buffer.resource->Release();
-            m_buffers.remove(element.handle);
+            m_buffers.remove(element.resource);
             return true;
         }
         return false;
@@ -757,9 +776,9 @@ void Render_Engine::empty_deletion_queues(uint64_t frame)
     auto texture_range = std::ranges::remove_if(m_texture_deletion_queue, [this, frame](auto& element) {
         if (frame >= element.frame)
         {
-            auto texture = m_textures[element.handle];
+            auto texture = m_textures[element.resource];
             texture.resource->Release();
-            m_textures.remove(element.handle);
+            m_textures.remove(element.resource);
             return true;
         }
         return false;
@@ -769,9 +788,9 @@ void Render_Engine::empty_deletion_queues(uint64_t frame)
     auto pipeline_range = std::ranges::remove_if(m_pipeline_deletion_queue, [this, frame](auto& element) {
         if (frame >= element.frame)
         {
-            auto pso = m_pipelines[element.handle];
+            auto pso = m_pipelines[element.resource];
             pso.pso->Release();
-            m_pipelines.remove(element.handle);
+            m_pipelines.remove(element.resource);
             return true;
         }
         return false;
