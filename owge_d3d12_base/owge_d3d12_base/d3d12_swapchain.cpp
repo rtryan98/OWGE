@@ -62,8 +62,8 @@ bool D3D12_Swapchain::try_resize()
 
     if (resize)
     {
-        auto wait_idle_result = wait_for_d3d12_queue_idle(m_device, m_direct_queue);
-        assert(wait_idle_result == WAIT_OBJECT_0); wait_idle_result; // HACK: need custom assert macro
+        [[maybe_unused]] auto wait_idle_result = wait_for_d3d12_queue_idle(m_device, m_direct_queue);
+        assert(wait_idle_result == WAIT_OBJECT_0);
         m_buffers = {};
         throw_if_failed(m_swapchain->ResizeBuffers(0, client_width, client_height, DXGI_FORMAT_UNKNOWN, desc.Flags),
             "Error resizing Swapchain buffers.");
