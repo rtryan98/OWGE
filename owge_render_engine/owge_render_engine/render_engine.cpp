@@ -1,6 +1,7 @@
 #include "owge_render_engine/render_engine.hpp"
 
 #include <algorithm>
+#include <d3d12shader.h>
 #include <utility>
 #include <fstream>
 #include <ranges>
@@ -10,7 +11,11 @@
 #include <nvperf_host_impl.h>
 #include <NvPerfD3D12.h>
 #pragma warning(pop)
-#endif
+#endif // OWGE_USE_NVPERF
+
+#if OWGE_USE_WIN_PIX_EVENT_RUNTIME
+#include <WinPixEventRuntime/pix3.h>
+#endif // OWGE_USE_WIN_PIX_EVENT_RUNTIME
 
 namespace owge
 {
@@ -69,6 +74,8 @@ Render_Engine::Render_Engine(HWND hwnd,
     }
 
     m_bindset_stager = std::make_unique<Bindset_Stager>();
+
+    DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_dxc_utils));
 
     if (render_engine_settings.nvperf_enabled)
     {
@@ -675,6 +682,16 @@ Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc
             .pShaderBytecode = shader.bytecode.data(),
             .BytecodeLength = shader.bytecode.size()
         };
+
+        Com_Ptr<ID3D12ShaderReflection> shader_reflection = {};
+        DxcBuffer reflection_buffer = {
+            .Ptr = shader.bytecode.data(),
+            .Size = shader.bytecode.size(),
+            .Encoding = DXC_CP_ACP,
+        };
+        m_dxc_utils->CreateReflection(&reflection_buffer, IID_PPV_ARGS(&shader_reflection));
+        shader_reflection->GetThreadGroupSize(
+            &pipeline.workgroups_x, &pipeline.workgroups_y, &pipeline.workgroups_z);
     }
     m_ctx.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.pso));
 

@@ -128,6 +128,9 @@ struct Pipeline
 {
     ID3D12PipelineState* pso;
     Pipeline_Type type;
+    uint32_t workgroups_x;
+    uint32_t workgroups_y;
+    uint32_t workgroups_z;
     union
     {
         Graphics_Pipeline_Desc graphics;

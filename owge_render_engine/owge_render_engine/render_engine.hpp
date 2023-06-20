@@ -10,6 +10,7 @@
 #include <owge_d3d12_base/d3d12_util.hpp>
 #include <owge_d3d12_base/d3d12_swapchain.hpp>
 
+#include <dxcapi.h>
 #include <memory>
 #include <vector>
 
@@ -86,6 +87,8 @@ private:
     D3D12_Context m_ctx;
     Render_Engine_Settings m_settings;
     bool m_nvperf_active;
+
+    Com_Ptr<IDxcUtils> m_dxc_utils;
 
     std::unique_ptr<Descriptor_Allocator> m_cbv_srv_uav_descriptor_allocator;
     std::unique_ptr<Descriptor_Allocator> m_sampler_descriptor_allocator;
