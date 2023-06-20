@@ -13,6 +13,8 @@ Optional steps:
 - NVIDIA Nsight Perf SDK:
     1. If not already done, set the environment variable `NVPERF_SDK_PATH` to the topmost directory of the SDK.
     2. Enable the cmake option `OWGE_USE_NVPERF`.
+- WinPixEventRuntime:
+    1. Enable the cmake option `OWGE_USE_WIN_PIX_EVENT_RUNTIME`.
 
 ## Meta
 This project follows the [Canonical Project Structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html) with some variations.
