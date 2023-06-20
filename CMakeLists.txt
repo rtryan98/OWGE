@@ -11,6 +11,7 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;Release" CACHE STRING "" FOR
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/NvPerfConfig.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/NvPerfUtilityConfig.cmake)
 
+# Helpers.
 macro(download_extract URL DST_FOLDER FOLDER_NAME)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/download/${FOLDER_NAME}.zip)
         message(STATUS "Downloading ${URL} and unpacking to ${DST_FOLDER}/${FOLDER_NAME} .")
@@ -104,6 +105,7 @@ macro(add_owge_exe TARGET)
     setup_owge_target(${TARGET})
 endmacro()
 
+# Shader compilation.
 add_custom_target(owge_shaders)
 set(DXC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/bin/x64/dxc.exe") # Change path depending on OS.
 set(SHADER_COMPILE_PARAMS -HV 2021 -Zpr -no-legacy-cbuf-layout -enable-16bit-types -I "${CMAKE_CURRENT_SOURCE_DIR}/owge_shaders/")
@@ -151,10 +153,16 @@ foreach(ITEM IN ITEMS ${owge_shaders_SOURCES})
     endif()
 endforeach()
 
+# Dependencies.
 download_extract(
     https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2212.1/dxc_2023_03_01.zip
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
     dxc_2023_03_01
+)
+
+copy_dll_if_not_exist(
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/bin/x64/
+    .
 )
 
 download_extract(
@@ -187,8 +195,11 @@ copy_dll_if_not_exist(
 
 add_subdirectory(thirdparty)
 
+# Options.
 option(OWGE_USE_NVPERF "Use NVIDIA Nsight Perf SDK" OFF)
+option(OWGE_USE_WIN_PIX_EVENT_RUNTIME "Use WinPixEventRuntime" ON)
 
+# Project.
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
@@ -206,12 +217,14 @@ add_owge_lib(owge_render_engine)
 target_include_directories(
     owge_render_engine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/inc
 )
 target_link_libraries(
     owge_render_engine PUBLIC
     owge_d3d12_base
     owge_window
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/lib/x64/dstorage.lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/dxc_2023_03_01/lib/x64/dxcompiler.lib
     unordered_dense
 )
 
@@ -244,6 +257,21 @@ if(OWGE_USE_NVPERF)
         ${NvPerfUtility_LIBRARIES}
     )
     deploynvperf(owge_tech_demo NvPerf-shared)
+endif()
+
+if(OWGE_USE_WIN_PIX_EVENT_RUNTIME)
+    message(STATUS "Building owge_render_engine with WinPixEventRuntime.")
+    target_compile_definitions(
+        owge_render_engine PUBLIC
+        OWGE_USE_WIN_PIX_EVENT_RUNTIME=1)
+    target_include_directories(
+        owge_render_engine PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/win_pix_event_runtime/Include/
+        )
+    target_link_libraries(
+        owge_render_engine PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/win_pix_event_runtime/bin/x64/WinPixEventRuntime.lib
+    )
 endif()
 
 if(MSVC)
