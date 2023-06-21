@@ -24,6 +24,7 @@ public:
     virtual ~Render_Procedure() = default;
 
     virtual void process(const Render_Procedure_Payload& payload) = 0;
+    [[nodiscard]] const char* get_name() const { return m_name.c_str(); }
 
 protected:
     Render_Procedure() = default;
