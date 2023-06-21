@@ -105,6 +105,8 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
             ocean_spectrum_calculate_v_yu_karaev_spectrum_omega_m(m_ocean_spectrum_pars.spectra[0].fetch);
         m_ocean_spectrum_pars.spectra[1].v_yu_karaev_spectrum_omega_m =
             ocean_spectrum_calculate_v_yu_karaev_spectrum_omega_m(m_ocean_spectrum_pars.spectra[1].fetch);
+        auto upload = payload.render_engine->upload_data(sizeof(Ocean_Spectrum_Ocean_Parameters), 0, m_initial_spectrum_ocean_params_buffer, 0);
+        memcpy(upload, &m_ocean_spectrum_pars, sizeof(Ocean_Spectrum_Ocean_Parameters));
 
         barrier_builder.push({
             .texture = m_initial_spectrum_texture,
@@ -125,11 +127,33 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
             .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
             });
         barrier_builder.flush();
+
         payload.cmd->set_bindset_compute(m_initial_spectrum_bindset);
         payload.cmd->set_pipeline_state(m_initial_spectrum_compute_pso);
         payload.cmd->dispatch_div_by_workgroups(m_initial_spectrum_compute_pso,
             m_ocean_spectrum_pars.size, m_ocean_spectrum_pars.size, 1);
-        m_is_dirty = false;
+
+        barrier_builder.push({
+            .texture = m_initial_spectrum_texture,
+            .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .access_after = D3D12_BARRIER_ACCESS_SHADER_RESOURCE,
+            .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .layout_after = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
+            .subresources = {
+                .IndexOrFirstMipLevel = 0,
+                .NumMipLevels = 1,
+                .FirstArraySlice = 0,
+                .NumArraySlices = 1,
+                .FirstPlane = 0,
+                .NumPlanes = 1
+            },
+            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+            });
+        barrier_builder.flush();
+
+        m_is_dirty = true;
     }
 }
 

@@ -39,9 +39,9 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_index);
     Ocean_Parameters pars = bnd.params.load_uniform<Ocean_Parameters>();
 
-    int2 id_shifted = int2(id.xy) - int2(pars.size, pars.size);
-    float delta_k = 2.0f * mc_pi / pars.lengthscale;
-    float2 k = id_shifted * delta_k / 2.0;
+    int2 id_shifted = int2(id.xy) - int2(pars.size, pars.size) / 2;
+    float delta_k = (2.0f * mc_pi) / pars.lengthscale;
+    float2 k = id_shifted * delta_k;
     float k_len = length(k);
 
     float omega = oceanography_dispersion_capillary(k_len, pars.gravity, pars.ocean_depth);
@@ -54,10 +54,10 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float directional_spectrum = oceanography_donelan_banner_directional_spreading(
         omega, omega_peak, theta);
     float spectrum = non_directional_spectrum * directional_spectrum;
-    spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / omega) * pow(delta_k, 2.0f));
+    spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / k_len) * pow(delta_k, 2.0f));
     float2 final_spectrum = float2(1.0f, 1.0f) * spectrum;
 
-    if(!all(id_shifted))
+    if(id_shifted.x == 0 && id_shifted.y == 0)
     {
         // We need to set the 0th wavevector to 0.
         // This does not break the calculation either, as this only corresponds to the DC-part of the spectrum.
