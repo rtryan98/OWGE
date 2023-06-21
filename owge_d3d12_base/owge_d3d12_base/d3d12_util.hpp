@@ -47,5 +47,6 @@ private:
     ID3D12DescriptorHeap* m_heap;
     ID3D12Device* m_device;
     std::vector<uint32_t> m_free_list;
+    uint32_t m_current_idx;
 };
 }

@@ -9,7 +9,7 @@ namespace owge
 struct Command_Buffer
 {
     ID3D12CommandAllocator* allocator;
-    ID3D12GraphicsCommandList9* cmd;
+    ID3D12GraphicsCommandList7* cmd;
 };
 
 class Command_Allocator

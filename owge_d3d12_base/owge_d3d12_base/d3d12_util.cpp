@@ -65,7 +65,7 @@ DWORD wait_for_d3d12_queue_idle(ID3D12Device* device, ID3D12CommandQueue* queue)
 }
 
 Descriptor_Allocator::Descriptor_Allocator(ID3D12DescriptorHeap* heap, ID3D12Device* device)
-    : m_heap(heap), m_device(device), m_free_list()
+    : m_heap(heap), m_device(device), m_free_list(), m_current_idx(0)
 {
     auto desc = m_heap->GetDesc();
     auto size = desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
@@ -78,11 +78,15 @@ Descriptor_Allocator::Descriptor_Allocator(ID3D12DescriptorHeap* heap, ID3D12Dev
 
 Descriptor Descriptor_Allocator::allocate() noexcept
 {
-    uint32_t index = uint32_t(m_free_list.size());
+    uint32_t index = m_current_idx;
     if (m_free_list.size() > 0)
     {
         index = m_free_list.back();
         m_free_list.pop_back();
+    }
+    else
+    {
+        m_current_idx += 1;
     }
 
     auto desc = m_heap->GetDesc();

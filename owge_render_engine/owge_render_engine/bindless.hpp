@@ -12,7 +12,7 @@ static constexpr uint32_t MAX_BINDSET_VALUES = 16;
 
 struct Bindset_Allocation
 {
-    uint32_t srv;
+    uint32_t bindless_idx;
     uint32_t offset;
     uint32_t index;
     Buffer_Handle resource;
@@ -23,7 +23,7 @@ struct Texture;
 
 struct Bindset
 {
-    void set_values(uint32_t index, uint32_t count, void* values);
+    void write_data(uint32_t first_element, uint32_t element_count, void* values);
 
     Bindset_Allocation allocation;
     uint32_t data[MAX_BINDSET_VALUES];
@@ -36,6 +36,7 @@ class Bindset_Allocator
 public:
     Bindset_Allocator(Render_Engine* render_engine);
 
+    void release_resources();
     [[nodiscard]] Bindset allocate_bindset();
     void delete_bindset(const Bindset& bindset);
 
@@ -52,7 +53,7 @@ class Bindset_Stager
 {
 public:
     void stage_bindset(Render_Engine* render_engine, const Bindset& bindset, Staging_Buffer_Allocator* staging_buffer_allocator);
-    void process(ID3D12GraphicsCommandList9* cmd);
+    void process(ID3D12GraphicsCommandList7* cmd);
 
 private:
     struct Bindset_Staged_Allocation
@@ -64,7 +65,4 @@ private:
     };
     std::vector<Bindset_Staged_Allocation> m_bindset_staged_copies;
 };
-
-void cmd_set_bindset_graphics(ID3D12GraphicsCommandList9* cmd, const Bindset& bindset);
-void cmd_set_bindset_compute(ID3D12GraphicsCommandList9* cmd, const Bindset& bindset);
 }

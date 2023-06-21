@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <dxgidebug.h>
 #include <wrl.h>
 
 extern "C" __declspec(dllexport) const uint32_t D3D12SDKVersion = 610;
@@ -114,12 +115,20 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
 void destroy_d3d12_context(D3D12_Context* ctx)
 {
     d3d12_context_wait_idle(ctx);
+
     ctx->global_rootsig->Release();
     ctx->sampler_descriptor_heap->Release();
     ctx->cbv_srv_uav_descriptor_heap->Release();
     ctx->copy_queue->Release();
     ctx->async_compute_queue->Release();
     ctx->direct_queue->Release();
+
+    Com_Ptr<ID3D12DebugDevice> debug_device;
+    if (SUCCEEDED(ctx->device->QueryInterface(IID_PPV_ARGS(&debug_device))))
+    {
+        debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+    }
+
     ctx->device->Release();
     ctx->adapter->Release();
     ctx->factory->Release();

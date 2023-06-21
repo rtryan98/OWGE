@@ -1,5 +1,5 @@
 target_sources(
-    owge_render_engine PUBLIC
+    owge_render_engine PRIVATE
     ocean.cpp
     ocean.hpp
     render_procedure.hpp

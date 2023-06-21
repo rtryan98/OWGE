@@ -1,5 +1,6 @@
 #include "owge_render_engine/render_procedure/ocean.hpp"
 #include "owge_render_engine/render_engine.hpp"
+#include "owge_render_engine/command_list.hpp"
 
 namespace owge
 {
@@ -48,10 +49,45 @@ Ocean_Calculate_Spectra_Render_Procedure::Ocean_Calculate_Spectra_Render_Procedu
         .format = DXGI_FORMAT_R32G32_FLOAT
     };
     m_initial_spectrum_texture = m_render_engine->create_texture(initial_spectrum_texture_desc);
+
+    Texture_Desc angular_frequency_texture_desc = {
+        .width = m_ocean_spectrum_pars.size,
+        .height = m_ocean_spectrum_pars.size,
+        .depth_or_array_layers = 1,
+        .mip_levels = 1,
+        .dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        .srv_dimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+        .uav_dimension = D3D12_UAV_DIMENSION_TEXTURE2D,
+        .rtv_dimension = D3D12_RTV_DIMENSION_UNKNOWN,
+        .dsv_dimension = D3D12_DSV_DIMENSION_UNKNOWN,
+        .initial_layout = D3D12_BARRIER_LAYOUT_UNDEFINED,
+        .format = DXGI_FORMAT_R32_FLOAT
+    };
+    m_angular_frequency_texture = m_render_engine->create_texture(angular_frequency_texture_desc);
+
+    Buffer_Desc initial_spectrum_params_buffer = {
+        .size = sizeof(Ocean_Spectrum_Ocean_Parameters),
+        .heap_type = D3D12_HEAP_TYPE_DEFAULT,
+        .usage = Resource_Usage::Read_Only
+    };
+    m_initial_spectrum_ocean_params_buffer = m_render_engine->create_buffer(initial_spectrum_params_buffer);
+
+    m_initial_spectrum_bindset = m_render_engine->create_bindset();
+    Ocean_Initial_Spectrum_Shader_Bindset bindset_data = {
+        .ocean_params_buf_idx = uint32_t(m_initial_spectrum_ocean_params_buffer.bindless_idx),
+        .initial_spectrum_tex_idx = uint32_t(m_initial_spectrum_texture.bindless_idx),
+        .angular_frequency_tex_idx = uint32_t(m_angular_frequency_texture.bindless_idx)
+    };
+    m_initial_spectrum_bindset.write_data(0, 3, &bindset_data);
+    m_render_engine->update_bindings(m_initial_spectrum_bindset);
 }
 
 Ocean_Calculate_Spectra_Render_Procedure::~Ocean_Calculate_Spectra_Render_Procedure()
 {
+    m_render_engine->destroy_bindset(m_initial_spectrum_bindset);
+
+    m_render_engine->destroy_buffer(m_initial_spectrum_ocean_params_buffer);
+    m_render_engine->destroy_texture(m_angular_frequency_texture);
     m_render_engine->destroy_texture(m_initial_spectrum_texture);
     m_render_engine->destroy_pipeline(m_developed_spectrum_compute_pso);
     m_render_engine->destroy_shader(m_developed_spectrum_shader);
@@ -61,6 +97,7 @@ Ocean_Calculate_Spectra_Render_Procedure::~Ocean_Calculate_Spectra_Render_Proced
 
 void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Payload& payload)
 {
+    auto barrier_builder = payload.cmd->acquire_barrier_builder();
     if (m_is_dirty)
     {
         // recalculate v yu karaev spectrum omega_m values for double peaked spectrum.
@@ -69,16 +106,15 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
         m_ocean_spectrum_pars.spectra[1].v_yu_karaev_spectrum_omega_m =
             ocean_spectrum_calculate_v_yu_karaev_spectrum_omega_m(m_ocean_spectrum_pars.spectra[1].fetch);
 
-        auto& initial_spectrum_texture = payload.render_engine->get_texture(m_initial_spectrum_texture);
-        D3D12_TEXTURE_BARRIER initial_spectrum_texture_barrier = {
-            .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-            .SyncAfter = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-            .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-            .AccessAfter = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-            .LayoutBefore = D3D12_BARRIER_LAYOUT_UNDEFINED,
-            .LayoutAfter = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-            .pResource = initial_spectrum_texture.resource,
-            .Subresources = {
+        barrier_builder.push({
+            .texture = m_initial_spectrum_texture,
+            .sync_before = D3D12_BARRIER_SYNC_NONE,
+            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .access_before = D3D12_BARRIER_ACCESS_NO_ACCESS,
+            .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .layout_before = D3D12_BARRIER_LAYOUT_UNDEFINED,
+            .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .subresources = {
                 .IndexOrFirstMipLevel = 0,
                 .NumMipLevels = 1,
                 .FirstArraySlice = 0,
@@ -86,18 +122,13 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
                 .FirstPlane = 0,
                 .NumPlanes = 1
             },
-            .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-        };
-        D3D12_BARRIER_GROUP initial_spectrum_texture_barrier_group = {
-            .Type = D3D12_BARRIER_TYPE_TEXTURE,
-            .NumBarriers = 1,
-            .pTextureBarriers = &initial_spectrum_texture_barrier
-        };
-        payload.cmd->Barrier(1, &initial_spectrum_texture_barrier_group);
-
-        auto& initial_spectrum_pso = payload.render_engine->get_pipeline(m_initial_spectrum_compute_pso);
-        payload.cmd->SetPipelineState(initial_spectrum_pso.pso);
-        payload.cmd->Dispatch(m_ocean_spectrum_pars.size / 32, m_ocean_spectrum_pars.size / 32, 1);
+            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+            });
+        barrier_builder.flush();
+        payload.cmd->set_bindset_compute(m_initial_spectrum_bindset);
+        payload.cmd->set_pipeline_state(m_initial_spectrum_compute_pso);
+        payload.cmd->dispatch_div_by_workgroups(m_initial_spectrum_compute_pso,
+            m_ocean_spectrum_pars.size, m_ocean_spectrum_pars.size, 1);
         m_is_dirty = false;
     }
 }

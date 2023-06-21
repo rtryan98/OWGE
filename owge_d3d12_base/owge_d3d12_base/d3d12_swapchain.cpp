@@ -50,7 +50,7 @@ bool D3D12_Swapchain::try_resize()
     throw_if_failed(m_swapchain->GetDesc1(&desc),
         "Error acquiring Swapchain description for resize.");
     RECT rect;
-    GetClientRect(m_hwnd, &rect);
+    bool client_rect_result = GetClientRect(m_hwnd, &rect);
     uint32_t client_width = rect.right - rect.left;
     uint32_t client_height = rect.bottom - rect.top;
 
@@ -60,7 +60,7 @@ bool D3D12_Swapchain::try_resize()
     bool resize = false;
     resize = ((client_width != desc.Width) || (client_height != desc.Height)) && has_area;
 
-    if (resize)
+    if (resize && client_rect_result)
     {
         [[maybe_unused]] auto wait_idle_result = wait_for_d3d12_queue_idle(m_device, m_direct_queue);
         assert(wait_idle_result == WAIT_OBJECT_0);

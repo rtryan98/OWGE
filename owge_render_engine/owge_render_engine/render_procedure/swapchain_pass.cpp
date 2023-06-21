@@ -1,4 +1,5 @@
 #include "owge_render_engine/render_procedure/swapchain_pass.hpp"
+#include "owge_render_engine/command_list.hpp"
 
 #include <owge_d3d12_base/d3d12_swapchain.hpp>
 
@@ -16,16 +17,16 @@ void Swapchain_Pass_Render_Procedure::add_subprocedure(Render_Procedure* sub_pro
 
 void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& payload)
 {
-    auto swapchain_res = payload.swapchain->get_acquired_resources();
-    D3D12_TEXTURE_BARRIER swapchain_barrier = {
-        .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-        .SyncAfter = D3D12_BARRIER_SYNC_RENDER_TARGET,
-        .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-        .AccessAfter = D3D12_BARRIER_ACCESS_RENDER_TARGET,
-        .LayoutBefore = D3D12_BARRIER_LAYOUT_UNDEFINED,
-        .LayoutAfter = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
-        .pResource = swapchain_res.buffer,
-        .Subresources = {
+    auto barrier_builder = payload.cmd->acquire_barrier_builder();
+    barrier_builder.push({
+        .swapchain = payload.swapchain,
+        .sync_before = D3D12_BARRIER_SYNC_NONE,
+        .sync_after = D3D12_BARRIER_SYNC_RENDER_TARGET,
+        .access_before = D3D12_BARRIER_ACCESS_NO_ACCESS,
+        .access_after = D3D12_BARRIER_ACCESS_RENDER_TARGET,
+        .layout_before = D3D12_BARRIER_LAYOUT_UNDEFINED,
+        .layout_after = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+        .subresources = {
             .IndexOrFirstMipLevel = 0xFFFFFFFF,
             .NumMipLevels = 0,
             .FirstArraySlice = 0,
@@ -33,28 +34,36 @@ void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& pa
             .FirstPlane = 0,
             .NumPlanes = 0
         },
-        .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
-    };
-    D3D12_BARRIER_GROUP swapchain_barrier_group = {
-        .Type = D3D12_BARRIER_TYPE_TEXTURE,
-        .NumBarriers = 1,
-        .pTextureBarriers = &swapchain_barrier
-    };
+        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
+        });
+    barrier_builder.flush();
 
-    payload.cmd->Barrier(1, &swapchain_barrier_group);
-    payload.cmd->ClearRenderTargetView(swapchain_res.rtv_descriptor, m_settings.clear_color, 0, nullptr);
-    payload.cmd->OMSetRenderTargets(1, &swapchain_res.rtv_descriptor, FALSE, nullptr);
+    payload.cmd->clear_render_target(payload.swapchain, m_settings.clear_color);
+    payload.cmd->set_render_target_swapchain(payload.swapchain, {});
+
     for (auto subproc : m_sub_procedures)
     {
         subproc->process(payload);
     }
 
-    swapchain_barrier.SyncBefore = D3D12_BARRIER_SYNC_RENDER_TARGET;
-    swapchain_barrier.SyncAfter = D3D12_BARRIER_SYNC_NONE;
-    swapchain_barrier.AccessBefore = D3D12_BARRIER_ACCESS_RENDER_TARGET;
-    swapchain_barrier.AccessAfter = D3D12_BARRIER_ACCESS_NO_ACCESS;
-    swapchain_barrier.LayoutBefore = D3D12_BARRIER_LAYOUT_RENDER_TARGET;
-    swapchain_barrier.LayoutAfter = D3D12_BARRIER_LAYOUT_PRESENT;
-    payload.cmd->Barrier(1, &swapchain_barrier_group);
+    barrier_builder.push({
+        .swapchain = payload.swapchain,
+        .sync_before = D3D12_BARRIER_SYNC_RENDER_TARGET,
+        .sync_after = D3D12_BARRIER_SYNC_NONE,
+        .access_before = D3D12_BARRIER_ACCESS_RENDER_TARGET,
+        .access_after = D3D12_BARRIER_ACCESS_NO_ACCESS,
+        .layout_before = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+        .layout_after = D3D12_BARRIER_LAYOUT_PRESENT,
+        .subresources = {
+            .IndexOrFirstMipLevel = 0xFFFFFFFF,
+            .NumMipLevels = 0,
+            .FirstArraySlice = 0,
+            .NumArraySlices = 0,
+            .FirstPlane = 0,
+            .NumPlanes = 0
+        },
+        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
+        });
+    barrier_builder.flush();
 }
 }

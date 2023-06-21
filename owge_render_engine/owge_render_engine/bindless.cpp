@@ -8,13 +8,22 @@ static constexpr uint64_t MAX_BINDSETS_IN_RESOURCE = 65536;
 static constexpr uint64_t BINDSET_ALLOCATOR_BUFFER_SIZE =
     sizeof(uint32_t) * MAX_BINDSET_VALUES * MAX_BINDSETS_IN_RESOURCE;
 
-void Bindset::set_values(uint32_t index, uint32_t count, void* values)
+void Bindset::write_data(uint32_t first_element, uint32_t element_count, void* values)
 {
-    memcpy(&data[index], values, count * sizeof(uint32_t));
+    memcpy(static_cast<void*>(&data[first_element]), values, element_count * sizeof(uint32_t));
+}
+
+void Bindset_Allocator::release_resources()
+{
+    for (auto resource : m_resources)
+    {
+        m_render_engine->destroy_buffer(resource);
+    }
 }
 
 Bindset_Allocator::Bindset_Allocator(Render_Engine* render_engine)
-    : m_render_engine(render_engine)
+    : m_render_engine(render_engine),
+    m_current_index(0)
 {}
 
 Bindset Bindset_Allocator::allocate_bindset()
@@ -31,29 +40,24 @@ Bindset Bindset_Allocator::allocate_bindset()
         Buffer_Desc buffer_desc = {
             .size = BINDSET_ALLOCATOR_BUFFER_SIZE,
             .heap_type = D3D12_HEAP_TYPE_DEFAULT,
-            .initial_layout = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
             .usage = Resource_Usage::Read_Only
         };
-        m_resources.push_back(m_render_engine->create_buffer(buffer_desc));
+        auto buffer_handle = m_render_engine->create_buffer(buffer_desc);
+        auto& buffer = m_render_engine->get_buffer(buffer_handle);
+        buffer.resource->SetName(L"Buffer:Bindset");
+        m_resources.push_back(buffer_handle);
     }
     allocation.offset = m_current_index * sizeof(uint32_t) * MAX_BINDSET_VALUES;
     allocation.index = m_current_index;
-    allocation.srv = m_render_engine->get_buffer(m_resources.back()).srv;
+    allocation.bindless_idx = m_resources.back().bindless_idx;
     allocation.resource = m_resources.back();
     m_current_index += 1;
     return Bindset(allocation);
 }
 
-void cmd_set_bindset_graphics(ID3D12GraphicsCommandList9* cmd, const Bindset& bindset)
+void Bindset_Allocator::delete_bindset(const Bindset& bindset)
 {
-    auto& alloc = bindset.allocation;
-    cmd->SetGraphicsRoot32BitConstants(0, 2, &alloc, 0);
-}
-
-void cmd_set_bindset_compute(ID3D12GraphicsCommandList9* cmd, const Bindset& bindset)
-{
-    auto& alloc = bindset.allocation;
-    cmd->SetComputeRoot32BitConstants(0, 2, &alloc, 0);
+    m_freelist.push_back(bindset.allocation);
 }
 
 void Bindset_Stager::stage_bindset(
@@ -76,7 +80,7 @@ void Bindset_Stager::stage_bindset(
     staged_bindset_copy.dst_offset = 0;
 }
 
-void Bindset_Stager::process(ID3D12GraphicsCommandList9* cmd)
+void Bindset_Stager::process(ID3D12GraphicsCommandList7* cmd)
 {
     for (const auto& staged_copy : m_bindset_staged_copies)
     {
@@ -85,21 +89,24 @@ void Bindset_Stager::process(ID3D12GraphicsCommandList9* cmd)
             staged_copy.src, staged_copy.src_offset,
             sizeof(uint32_t) * MAX_BINDSET_VALUES);
     }
-
-    D3D12_GLOBAL_BARRIER global_barrier = {
-        .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-        .SyncAfter = D3D12_BARRIER_SYNC_COPY,
-        .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-        .AccessAfter = D3D12_BARRIER_ACCESS_COPY_DEST
-    };
-    D3D12_BARRIER_GROUP barrier_group = {
-        .Type = D3D12_BARRIER_TYPE_GLOBAL,
-        .pGlobalBarriers = &global_barrier
-    };
-    global_barrier.SyncBefore = D3D12_BARRIER_SYNC_COPY;
-    global_barrier.SyncAfter = D3D12_BARRIER_SYNC_ALL_SHADING | D3D12_BARRIER_SYNC_RAYTRACING;
-    global_barrier.AccessBefore = D3D12_BARRIER_ACCESS_COPY_DEST;
-    global_barrier.AccessAfter = D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
-    cmd->Barrier(1, &barrier_group);
+    if (m_bindset_staged_copies.size() > 0)
+    {
+        D3D12_GLOBAL_BARRIER global_barrier = {
+            .SyncBefore = D3D12_BARRIER_SYNC_NONE,
+            .SyncAfter = D3D12_BARRIER_SYNC_COPY,
+            .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
+            .AccessAfter = D3D12_BARRIER_ACCESS_COPY_DEST
+        };
+        D3D12_BARRIER_GROUP barrier_group = {
+            .Type = D3D12_BARRIER_TYPE_GLOBAL,
+            .pGlobalBarriers = &global_barrier
+        };
+        global_barrier.SyncBefore = D3D12_BARRIER_SYNC_COPY;
+        global_barrier.SyncAfter = D3D12_BARRIER_SYNC_ALL;
+        global_barrier.AccessBefore = D3D12_BARRIER_ACCESS_COPY_DEST;
+        global_barrier.AccessAfter = D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        cmd->Barrier(1, &barrier_group);
+        m_bindset_staged_copies.clear();
+    }
 }
 }

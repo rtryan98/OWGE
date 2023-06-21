@@ -30,7 +30,7 @@ struct Render_Engine_Frame_Context
     std::unique_ptr<Command_Allocator> direct_queue_cmd_alloc;
     Com_Ptr<ID3D12Fence1> direct_queue_fence;
     uint64_t frame_number;
-    ID3D12GraphicsCommandList9* upload_cmd;
+    ID3D12GraphicsCommandList7* upload_cmd;
     std::unique_ptr<Staging_Buffer_Allocator> staging_buffer_allocator;
 };
 
@@ -50,18 +50,24 @@ public:
     void add_procedure(Render_Procedure* proc);
     void render();
 
+    [[nodiscard]] void* upload_data(uint64_t size, uint64_t align, Buffer_Handle dst, uint64_t dst_offset);
     void update_bindings(const Bindset& bindset);
 
-    Buffer_Handle create_buffer(const Buffer_Desc& desc);
-    Texture_Handle create_texture(const Texture_Desc& desc);
-    Shader_Handle create_shader(const Shader_Desc& desc);
-    Pipeline_Handle create_pipeline(const Graphics_Pipeline_Desc& desc);
-    Pipeline_Handle create_pipeline(const Compute_Pipeline_Desc& desc);
+    [[nodiscard]] Buffer_Handle create_buffer(const Buffer_Desc& desc);
+    [[nodiscard]] Texture_Handle create_texture(const Texture_Desc& desc);
+    [[nodiscard]] Shader_Handle create_shader(const Shader_Desc& desc);
+    [[nodiscard]] Pipeline_Handle create_pipeline(const Graphics_Pipeline_Desc& desc);
+    [[nodiscard]] Pipeline_Handle create_pipeline(const Compute_Pipeline_Desc& desc);
+    [[nodiscard]] Sampler_Handle create_sampler(const Sampler_Desc& desc);
+    [[nodiscard]] Bindset create_bindset();
 
     void destroy_buffer(Buffer_Handle handle);
     void destroy_texture(Texture_Handle handle);
     void destroy_shader(Shader_Handle handle);
     void destroy_pipeline(Pipeline_Handle handle);
+    void destroy_sampler(Sampler_Handle handle);
+    void destroy_bindset(const Bindset& bindset);
+    void destroy_d3d12_resource_deferred(ID3D12Resource* resource);
 
     [[nodiscard]] const Buffer& get_buffer(Buffer_Handle handle) const;
     [[nodiscard]] Buffer& get_buffer(Buffer_Handle handle);
@@ -71,6 +77,8 @@ public:
     [[nodiscard]] Pipeline& get_pipeline(Pipeline_Handle handle);
     [[nodiscard]] const Shader& get_shader(Shader_Handle handle) const;
     [[nodiscard]] Shader& get_shader(Shader_Handle handle);
+
+    [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE get_cpu_descriptor_from_texture(Texture_Handle handle) const;
 
 private:
     [[nodiscard]] std::vector<uint8_t> read_shader_from_file(const std::string& path);
@@ -104,6 +112,7 @@ private:
     Resource_Allocator<Texture> m_textures;
     Resource_Allocator<Pipeline> m_pipelines;
     Resource_Allocator<Shader> m_shaders;
+    Resource_Allocator<Sampler> m_samplers;
 
     uint64_t m_current_frame = 0;
     uint32_t m_current_frame_index = 0;
@@ -115,5 +124,8 @@ private:
     std::vector<Deletion_Queue_Resource<Buffer_Handle>> m_buffer_deletion_queue;
     std::vector<Deletion_Queue_Resource<Texture_Handle>> m_texture_deletion_queue;
     std::vector<Deletion_Queue_Resource<Pipeline_Handle>> m_pipeline_deletion_queue;
+    std::vector<Deletion_Queue_Resource<Sampler_Handle>> m_sampler_deletion_queue;
+    std::vector<Deletion_Queue_Resource<Bindset>> m_bindset_deletion_queue;
+    std::vector<Deletion_Queue_Resource<ID3D12Resource*>> m_deferred_resource_deletion_queue;
 };
 }

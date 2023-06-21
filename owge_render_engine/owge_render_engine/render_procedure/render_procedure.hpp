@@ -5,6 +5,7 @@
 
 namespace owge
 {
+class Command_List;
 class Render_Engine;
 class Barrier_Builder;
 class D3D12_Swapchain;
@@ -12,7 +13,7 @@ class D3D12_Swapchain;
 struct Render_Procedure_Payload
 {
     Render_Engine* render_engine;
-    ID3D12GraphicsCommandList9* cmd;
+    Command_List* cmd;
     Barrier_Builder* barrier_builder;
     D3D12_Swapchain* swapchain;
 };

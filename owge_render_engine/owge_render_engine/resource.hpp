@@ -12,16 +12,18 @@ template<typename T>
 struct Base_Resource_Handle
 {
     uint64_t alive : 1;
-    uint64_t flags : 8;
-    uint64_t gen : 23;
-    uint64_t idx : 32;
+    uint64_t flags : 3;
+    uint64_t bindless_idx : 20;
+    uint64_t gen : 20;
+    uint64_t resource_idx : 20;
 
     [[nodiscard]] bool operator==(Base_Resource_Handle other) const
     {
         return (alive == other.alive)
             && (flags == other.flags)
-            && (idx == other.idx)
-            && (gen == other.gen);
+            && (bindless_idx == other.bindless_idx)
+            && (gen == other.gen)
+            && (resource_idx == other.resource_idx);
     }
     [[nodiscard]] bool operator!=(Base_Resource_Handle other) const
     {
@@ -32,8 +34,9 @@ struct Base_Resource_Handle
     {
         return alive == 0
             && flags == 0
+            && bindless_idx == 0
             && gen == 0
-            && idx == 0;
+            && resource_idx == 0;
     }
 };
 
@@ -47,15 +50,12 @@ struct Buffer_Desc
 {
     uint64_t size;
     D3D12_HEAP_TYPE heap_type;
-    D3D12_BARRIER_LAYOUT initial_layout;
     Resource_Usage usage;
 };
 
 struct Buffer
 {
     ID3D12Resource2* resource;
-    uint32_t srv;
-    uint32_t uav;
 };
 using Buffer_Handle = Base_Resource_Handle<Buffer>;
 
@@ -77,9 +77,8 @@ struct Texture_Desc
 struct Texture
 {
     ID3D12Resource2* resource;
-    uint32_t rtv_dsv;
-    uint32_t srv;
-    uint32_t uav;
+    uint32_t rtv;
+    uint32_t dsv;
 };
 using Texture_Handle = Base_Resource_Handle<Texture>;
 
@@ -138,4 +137,22 @@ struct Pipeline
     };
 };
 using Pipeline_Handle = Base_Resource_Handle<Pipeline>;
+
+struct Sampler_Desc
+{
+    D3D12_FILTER filter;
+    D3D12_TEXTURE_ADDRESS_MODE address_u;
+    D3D12_TEXTURE_ADDRESS_MODE address_v;
+    D3D12_TEXTURE_ADDRESS_MODE address_w;
+    float mip_lod_bias;
+    uint32_t max_anisotropy;
+    D3D12_COMPARISON_FUNC comparison_func;
+    float boder_color[4];
+    float min_lod;
+    float max_lod;
+};
+
+struct Sampler
+{};
+using Sampler_Handle = Base_Resource_Handle<Sampler>;
 }
