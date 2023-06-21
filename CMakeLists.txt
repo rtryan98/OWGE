@@ -62,7 +62,7 @@ macro(set_target_default_properties TARGET)
         )
         set_target_properties(
             ${TARGET} PROPERTIES
-            VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
     endif()
 endmacro()
@@ -90,9 +90,6 @@ macro(setup_owge_target TARGET)
         ${TARGET} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET}
     )
-    if(MSVC)
-        set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    endif()
 endmacro()
 
 macro(add_owge_lib TARGET)
@@ -171,6 +168,11 @@ download_extract(
     d3d12_agility_1.610.2
 )
 
+copy_dll_if_not_exist(
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/bin/x64/
+    D3D12
+)
+
 download_extract(
     https://www.nuget.org/api/v2/package/WinPixEventRuntime/1.0.230302001
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
@@ -178,8 +180,8 @@ download_extract(
 )
 
 copy_dll_if_not_exist(
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/bin/x64/
-    D3D12
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/win_pix_event_runtime/bin/x64/
+    .
 )
 
 download_extract(

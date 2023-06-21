@@ -1,9 +1,11 @@
 target_sources(
-    owge_render_engine PUBLIC
+    owge_render_engine PRIVATE
     bindless.cpp
     bindless.hpp
     command_allocator.cpp
     command_allocator.hpp
+    command_list.cpp
+    command_list.hpp
     render_engine.cpp
     render_engine.hpp
     resource.hpp

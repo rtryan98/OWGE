@@ -1,5 +1,5 @@
 target_sources(
-    owge_d3d12_base PUBLIC
+    owge_d3d12_base PRIVATE
     com_ptr.hpp
     d3d12_ctx.cpp
     d3d12_ctx.hpp
