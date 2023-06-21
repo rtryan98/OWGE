@@ -131,6 +131,10 @@ Render_Engine::~Render_Engine()
     d3d12_context_wait_idle(&m_ctx);
 
     m_bindset_allocator->release_resources();
+    for (auto& frame_ctx : m_frame_contexts)
+    {
+        frame_ctx.staging_buffer_allocator->reset();
+    }
     empty_deletion_queues(~0ull);
 
 #if OWGE_USE_NVPERF
@@ -141,10 +145,10 @@ Render_Engine::~Render_Engine()
     }
 #endif
 
+    m_bindset_allocator = nullptr;
     m_rtv_descriptor_heap = nullptr;
     m_dsv_descriptor_heap = nullptr;
     m_frame_contexts = {};
-    m_bindset_allocator = nullptr;
     m_bindset_stager = nullptr;
     m_swapchain = nullptr;
 
@@ -194,10 +198,23 @@ void Render_Engine::render()
     procedure_cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
     for (auto procedure : m_procedures)
     {
+        procedure_cmd_list.begin_event(200, 200, 200, procedure->get_name());
         procedure->process(proc_payload);
+        procedure_cmd_list.end_event();
     }
 
     m_bindset_stager->process(procedure_cmd);
+    D3D12_GLOBAL_BARRIER global_upload_barrier = {
+        .SyncBefore = D3D12_BARRIER_SYNC_COPY,
+        .SyncAfter = D3D12_BARRIER_SYNC_ALL,
+        .AccessBefore = D3D12_BARRIER_ACCESS_COPY_DEST,
+        .AccessAfter = D3D12_BARRIER_ACCESS_COMMON
+    };
+    D3D12_BARRIER_GROUP global_upload_barrier_group = {
+        .Type = D3D12_BARRIER_TYPE_GLOBAL,
+        .pGlobalBarriers = &global_upload_barrier
+    };
+    frame_ctx.upload_cmd->Barrier(1, &global_upload_barrier_group);
 
     frame_ctx.upload_cmd->Close();
     procedure_cmd->Close();
@@ -227,7 +244,7 @@ void* Render_Engine::upload_data(uint64_t size, uint64_t align, Buffer_Handle ds
     auto allocation = frame_ctx.staging_buffer_allocator->allocate(size, align);
     auto& buffer = get_buffer(dst);
     frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
-    return allocation.data;
+    return &static_cast<uint8_t*>(allocation.data)[allocation.offset];
 }
 
 void Render_Engine::update_bindings(const Bindset& bindset)

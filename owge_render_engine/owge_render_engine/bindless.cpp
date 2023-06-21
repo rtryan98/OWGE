@@ -89,24 +89,6 @@ void Bindset_Stager::process(ID3D12GraphicsCommandList7* cmd)
             staged_copy.src, staged_copy.src_offset,
             sizeof(uint32_t) * MAX_BINDSET_VALUES);
     }
-    if (m_bindset_staged_copies.size() > 0)
-    {
-        D3D12_GLOBAL_BARRIER global_barrier = {
-            .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-            .SyncAfter = D3D12_BARRIER_SYNC_COPY,
-            .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-            .AccessAfter = D3D12_BARRIER_ACCESS_COPY_DEST
-        };
-        D3D12_BARRIER_GROUP barrier_group = {
-            .Type = D3D12_BARRIER_TYPE_GLOBAL,
-            .pGlobalBarriers = &global_barrier
-        };
-        global_barrier.SyncBefore = D3D12_BARRIER_SYNC_COPY;
-        global_barrier.SyncAfter = D3D12_BARRIER_SYNC_ALL;
-        global_barrier.AccessBefore = D3D12_BARRIER_ACCESS_COPY_DEST;
-        global_barrier.AccessAfter = D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
-        cmd->Barrier(1, &barrier_group);
-        m_bindset_staged_copies.clear();
-    }
+    m_bindset_staged_copies.clear();
 }
 }
