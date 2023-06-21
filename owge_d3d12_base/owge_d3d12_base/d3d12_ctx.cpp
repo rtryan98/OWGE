@@ -124,14 +124,15 @@ void destroy_d3d12_context(D3D12_Context* ctx)
     ctx->direct_queue->Release();
 
     Com_Ptr<ID3D12DebugDevice> debug_device;
-    if (SUCCEEDED(ctx->device->QueryInterface(IID_PPV_ARGS(&debug_device))))
-    {
-        debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-    }
+    bool has_debug_device = SUCCEEDED(ctx->device->QueryInterface(IID_PPV_ARGS(&debug_device)));
 
     ctx->device->Release();
     ctx->adapter->Release();
     ctx->factory->Release();
+    if (has_debug_device)
+    {
+        debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+    }
 }
 
 void d3d12_context_wait_idle(D3D12_Context* ctx)
