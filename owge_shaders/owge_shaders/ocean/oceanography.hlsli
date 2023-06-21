@@ -23,7 +23,7 @@ float oceanography_dispersion_finite_depth(float k, float g, float h)
 
 float oceanography_dispersion_finite_depth_d_dk(float k, float g, float h)
 {
-    return g * (tanh(k * h) + k * h * pow(math_sech(k * h), 2.0f)) / (2.0f * sqrt(g * k * tanh(k * h)));
+    return g * (tanh(k * h) + k * h * pow(math_sech(clamp(k * h, -9.0, 9.0)), 2.0f)) / (2.0f * sqrt(g * k * tanh(k * h)));
 }
 
 float oceanography_dispersion_capillary(float k, float g, float h)
@@ -44,7 +44,7 @@ float oceanography_dispersion_capillary_d_dk(float k, float g, float h)
     float k3 = k2 * k;
 
     float a = (3.0f * sigma_over_rho * k2 + g) * tanh(k * h);
-    float b = h * (sigma_over_rho * k3 + g * k) * pow(math_sech(k * h), 2.0f);
+    float b = h * (sigma_over_rho * k3 + g * k) * pow(math_sech(clamp(k * h, -9.0, 9.0)), 2.0f);
     float c = 2.0f * sqrt((sigma_over_rho * k3 + g * k) * tanh(k * h));
 
     return (a + b) / c;
@@ -95,7 +95,7 @@ float oceanography_jonswap_spectrum(float omega, float omega_peak, float u, floa
         : sigma_1;
     float alpha = 0.076f * pow(pow(u, 2.0f) / (f * g), 0.22f);
     float r = exp(-(pow(omega - omega_peak, 2.0f) / (2.0f * pow(sigma, 2.0f) * pow(omega_peak, 2.0f))));
-    return ((alpha * pow(g, 2.0f))/(pow(omega, 5.0f))) * exp(-1.25f * pow(omega_peak / omega, 4.0f)) * pow(gamma, 4.0f);
+    return ((alpha * pow(g, 2.0f))/(pow(omega, 5.0f))) * exp(-1.25f * pow(omega_peak / omega, 4.0f)) * pow(gamma, r);
 }
 
 float oceanography_tma_spectrum(float omega, float omega_peak, float u, float g, float f, float h)
@@ -105,7 +105,9 @@ float oceanography_tma_spectrum(float omega, float omega_peak, float u, float g,
     float phi_1 = 1.0f - 0.5f * pow(2.0f - omega_h, 2.0f);
     float phi = omega_h <= 1.0f
         ? phi_0
-        : phi_1;
+        : omega_h <= 2.0f
+            ? phi_1
+            : 1.0f;
     return phi * oceanography_jonswap_spectrum(omega, omega_peak, u, g, f);
 }
 
@@ -206,7 +208,7 @@ float __oceanography_donelan_banner_beta_s(float omega, float omega_peak)
 float oceanography_donelan_banner_directional_spreading(float omega, float omega_peak, float theta)
 {
     float beta_s = __oceanography_donelan_banner_beta_s(omega, omega_peak);
-    return (beta_s/(2.0f * tanh(beta_s * mc_pi))) * pow(math_sech(beta_s * theta), 2.0f);
+    return (beta_s/(2.0f * tanh(beta_s * mc_pi))) * pow(math_sech(clamp(beta_s * theta, -9.0, 9.0)), 2.0f);
 }
 
 float oceanography_flat_directional_spreading()
