@@ -100,6 +100,7 @@ void D3D12_Swapchain::recreate_resources()
         descriptor_cpu_handle.ptr += i * descriptor_increment;
         throw_if_failed(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i])),
             "Error acquiring Swapchain Buffer.");
+        m_buffers[i]->SetName(L"Texture:Swapchain");
         D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
             .Format = desc.Format,
             .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
