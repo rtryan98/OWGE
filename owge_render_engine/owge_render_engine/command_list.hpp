@@ -86,12 +86,14 @@ public:
     void set_render_targets(std::span<Texture_Handle> textures, Texture_Handle depth_stencil);
     void set_render_target_swapchain(D3D12_Swapchain* swapchain, Texture_Handle depth_stencil);
 
-    void begin_event(uint8_t red, uint8_t green, uint8_t blue, const char* message);
+    void begin_event(const char* message);
     void end_event();
-    void set_marker(uint8_t red, uint8_t green, uint8_t blue, const char* message);
+    void set_marker(const char* message);
 
 private:
     Render_Engine* m_render_engine;
     ID3D12GraphicsCommandList7* m_cmd;
+    uint8_t m_event_index = 0;
+    uint8_t m_marker_index = 0;
 };
 }

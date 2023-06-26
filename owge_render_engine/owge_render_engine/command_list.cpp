@@ -227,14 +227,10 @@ void Command_List::set_render_target_swapchain(D3D12_Swapchain* swapchain, Textu
     }
 }
 
-void Command_List::begin_event(
-    [[maybe_unused]] uint8_t red,
-    [[maybe_unused]] uint8_t green,
-    [[maybe_unused]] uint8_t blue,
-    [[maybe_unused]] const char* message)
+void Command_List::begin_event([[maybe_unused]] const char* message)
 {
 #if OWGE_USE_WIN_PIX_EVENT_RUNTIME
-    PIXBeginEvent(m_cmd, PIX_COLOR(red, green, blue), message);
+    PIXBeginEvent(m_cmd, PIX_COLOR_INDEX(m_event_index), message);
 #endif // OWGE_USE_WIN_PIX_EVENT_RUNTIME
 }
 
@@ -242,17 +238,15 @@ void Command_List::end_event()
 {
 #if OWGE_USE_WIN_PIX_EVENT_RUNTIME
     PIXEndEvent(m_cmd);
+    m_event_index += 1;
 #endif // OWGE_USE_WIN_PIX_EVENT_RUNTIME
 }
 
-void Command_List::set_marker(
-    [[maybe_unused]] uint8_t red,
-    [[maybe_unused]] uint8_t green,
-    [[maybe_unused]] uint8_t blue,
-    [[maybe_unused]] const char* message)
+void Command_List::set_marker([[maybe_unused]] const char* message)
 {
 #if OWGE_USE_WIN_PIX_EVENT_RUNTIME
-    PIXSetMarker(m_cmd, PIX_COLOR(red, green, blue), message);
+    PIXSetMarker(m_cmd, PIX_COLOR_INDEX(m_marker_index), message);
+    m_marker_index += 1;
 #endif // OWGE_USE_WIN_PIX_EVENT_RUNTIME
 }
 }
