@@ -8,3 +8,6 @@ thirdparty/win_pix_event_runtime/*
 
 # Shaders
 *.bin
+
+# Imgui
+imgui.ini
