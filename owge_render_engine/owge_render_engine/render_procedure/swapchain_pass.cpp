@@ -43,7 +43,9 @@ void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& pa
 
     for (auto subproc : m_sub_procedures)
     {
+        payload.cmd->begin_event(subproc->get_name());
         subproc->process(payload);
+        payload.cmd->end_event();
     }
 
     barrier_builder.push({
