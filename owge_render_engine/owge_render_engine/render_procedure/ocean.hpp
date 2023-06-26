@@ -32,13 +32,6 @@ struct Ocean_Settings
 
 };
 
-struct Ocean_Initial_Spectrum_Shader_Bindset
-{
-    uint32_t ocean_params_buf_idx;
-    uint32_t initial_spectrum_tex_idx;
-    uint32_t angular_frequency_tex_idx;
-};
-
 class Ocean_Calculate_Spectra_Render_Procedure : public Render_Procedure
 {
 public:
@@ -58,12 +51,15 @@ private:
     Pipeline_Handle m_developed_spectrum_compute_pso;
     Texture_Handle m_initial_spectrum_texture;
     Texture_Handle m_angular_frequency_texture;
+    Texture_Handle m_developed_spectrum_texture;
     Buffer_Handle m_initial_spectrum_ocean_params_buffer;
 
     Bindset m_initial_spectrum_bindset;
+    Bindset m_developed_spectrum_bindset;
 
     Ocean_Spectrum_Ocean_Parameters m_ocean_spectrum_pars;
     bool m_is_dirty = true;
+    float m_time = 0.0f;
 };
 
 struct Ocean_Tile_Settings
@@ -74,6 +70,7 @@ struct Ocean_Tile_Settings
 class Ocean_Tile_Render_Procedure : public Render_Procedure
 {
 public:
+    Ocean_Tile_Render_Procedure();
     virtual void process(const Render_Procedure_Payload& payload) override;
 };
 }
