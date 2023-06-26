@@ -77,7 +77,7 @@ void Bindset_Stager::stage_bindset(
     staged_bindset_copy.src = staging_buffer_alloc.resource;
     staged_bindset_copy.src_offset = staging_buffer_alloc.offset;
     staged_bindset_copy.dst = bindset_allocation_buffer.resource;
-    staged_bindset_copy.dst_offset = 0;
+    staged_bindset_copy.dst_offset = bindset.allocation.offset;
 }
 
 void Bindset_Stager::process(ID3D12GraphicsCommandList7* cmd)
