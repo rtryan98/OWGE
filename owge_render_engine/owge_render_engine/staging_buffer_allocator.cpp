@@ -41,7 +41,7 @@ Staging_Buffer_Allocation Staging_Buffer_Allocator::allocate(uint64_t size, uint
             &heap_properties, D3D12_HEAP_FLAG_NONE,
             &resource_desc, D3D12_BARRIER_LAYOUT_UNDEFINED,
             nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&new_resource));
-        new_resource->SetName(L"Staging_Buffer:Large_Upload_Buffer");
+        new_resource->SetName(L"Buffer:Staging:Large_Upload_Buffer");
         new_resource->Map(0, nullptr, &mapped_data);
         return {
             .resource = new_resource,
@@ -56,7 +56,7 @@ Staging_Buffer_Allocation Staging_Buffer_Allocator::allocate(uint64_t size, uint
             &heap_properties, D3D12_HEAP_FLAG_NONE,
             &resource_desc, D3D12_BARRIER_LAYOUT_UNDEFINED,
             nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&new_resource));
-        new_resource->SetName(L"Staging_Buffer:Small_Upload_Buffer");
+        new_resource->SetName(L"Buffer:Staging:Small_Upload_Buffer");
         new_resource->Map(0, nullptr, &m_mapped_data);
         m_current_offset = 0;
         m_current_resource = new_resource;
