@@ -160,7 +160,7 @@ void Render_Engine::add_procedure(Render_Procedure* proc)
     m_procedures.push_back(proc);
 }
 
-void Render_Engine::render()
+void Render_Engine::render(float delta_time)
 {
     auto& frame_ctx = m_frame_contexts[m_current_frame_index];
 
@@ -188,7 +188,8 @@ void Render_Engine::render()
         .render_engine = this,
         .cmd = &procedure_cmd_list,
         .barrier_builder = &procedure_cmd_global_barrier_builder,
-        .swapchain = m_swapchain.get()
+        .swapchain = m_swapchain.get(),
+        .delta_time = delta_time
     };
     procedure_cmd->SetComputeRootSignature(m_ctx.global_rootsig);
     procedure_cmd->SetGraphicsRootSignature(m_ctx.global_rootsig);
@@ -198,7 +199,7 @@ void Render_Engine::render()
     procedure_cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
     for (auto procedure : m_procedures)
     {
-        procedure_cmd_list.begin_event(200, 200, 200, procedure->get_name());
+        procedure_cmd_list.begin_event(procedure->get_name());
         procedure->process(proc_payload);
         procedure_cmd_list.end_event();
     }
@@ -253,7 +254,7 @@ void Render_Engine::update_bindings(const Bindset& bindset)
     m_bindset_stager->stage_bindset(this, bindset, frame_ctx.staging_buffer_allocator.get());
 }
 
-Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
+Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc, const wchar_t* name)
 {
     Buffer buffer = {};
 
@@ -285,6 +286,10 @@ Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
         &heap_properties, D3D12_HEAP_FLAG_NONE,
         &resource_desc, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr,
         nullptr, 0, nullptr, IID_PPV_ARGS(&buffer.resource));
+    if (name)
+    {
+        buffer.resource->SetName(name);
+    }
 
     auto srv = m_cbv_srv_uav_descriptor_allocator->allocate();
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
@@ -320,7 +325,7 @@ Buffer_Handle Render_Engine::create_buffer(const Buffer_Desc& desc)
     return m_buffers.insert(0, srv.index, buffer);
 }
 
-Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
+Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc, const wchar_t* name)
 {
     Texture texture = {};
 
@@ -357,6 +362,10 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc)
         &heap_properties, D3D12_HEAP_FLAG_NONE,
         &resource_desc, desc.initial_layout, nullptr,
         nullptr, 0, nullptr, IID_PPV_ARGS(&texture.resource));
+    if (name)
+    {
+        texture.resource->SetName(name);
+    }
 
     auto srv = m_cbv_srv_uav_descriptor_allocator->allocate();
     if (desc.srv_dimension != D3D12_SRV_DIMENSION_UNKNOWN)
@@ -627,7 +636,7 @@ Shader_Handle Render_Engine::create_shader(const Shader_Desc& desc)
     return emplaced_handle.handle;
 }
 
-Pipeline_Handle Render_Engine::create_pipeline(const Graphics_Pipeline_Desc& desc)
+Pipeline_Handle Render_Engine::create_pipeline(const Graphics_Pipeline_Desc& desc, const wchar_t* name)
 {
     Pipeline pipeline = {
         .type = Pipeline_Type::Graphics
@@ -693,11 +702,15 @@ Pipeline_Handle Render_Engine::create_pipeline(const Graphics_Pipeline_Desc& des
         };
     }
     m_ctx.device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.pso));
+    if (name)
+    {
+        pipeline.pso->SetName(name);
+    }
 
     return m_pipelines.insert(0, 0, pipeline);
 }
 
-Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc)
+Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc, const wchar_t* name)
 {
     Pipeline pipeline = {
         .type = Pipeline_Type::Compute
@@ -728,6 +741,10 @@ Pipeline_Handle Render_Engine::create_pipeline(const Compute_Pipeline_Desc& desc
             &pipeline.workgroups_x, &pipeline.workgroups_y, &pipeline.workgroups_z);
     }
     m_ctx.device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&pipeline.pso));
+    if (name)
+    {
+        pipeline.pso->SetName(name);
+    }
 
     return m_pipelines.insert(0, 0, pipeline);
 }

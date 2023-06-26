@@ -48,16 +48,16 @@ public:
     Render_Engine& operator=(Render_Engine&&) = delete;
 
     void add_procedure(Render_Procedure* proc);
-    void render();
+    void render(float delta_time);
 
     [[nodiscard]] void* upload_data(uint64_t size, uint64_t align, Buffer_Handle dst, uint64_t dst_offset);
     void update_bindings(const Bindset& bindset);
 
-    [[nodiscard]] Buffer_Handle create_buffer(const Buffer_Desc& desc);
-    [[nodiscard]] Texture_Handle create_texture(const Texture_Desc& desc);
+    [[nodiscard]] Buffer_Handle create_buffer(const Buffer_Desc& desc, const wchar_t* name = nullptr);
+    [[nodiscard]] Texture_Handle create_texture(const Texture_Desc& desc, const wchar_t* name = nullptr);
     [[nodiscard]] Shader_Handle create_shader(const Shader_Desc& desc);
-    [[nodiscard]] Pipeline_Handle create_pipeline(const Graphics_Pipeline_Desc& desc);
-    [[nodiscard]] Pipeline_Handle create_pipeline(const Compute_Pipeline_Desc& desc);
+    [[nodiscard]] Pipeline_Handle create_pipeline(const Graphics_Pipeline_Desc& desc, const wchar_t* name = nullptr);
+    [[nodiscard]] Pipeline_Handle create_pipeline(const Compute_Pipeline_Desc& desc, const wchar_t* name = nullptr);
     [[nodiscard]] Sampler_Handle create_sampler(const Sampler_Desc& desc);
     [[nodiscard]] Bindset create_bindset();
 

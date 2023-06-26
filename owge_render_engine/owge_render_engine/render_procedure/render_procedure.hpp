@@ -16,6 +16,7 @@ struct Render_Procedure_Payload
     Command_List* cmd;
     Barrier_Builder* barrier_builder;
     D3D12_Swapchain* swapchain;
+    float delta_time;
 };
 
 class Render_Procedure
