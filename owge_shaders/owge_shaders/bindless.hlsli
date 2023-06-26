@@ -4,10 +4,10 @@
 static const uint bindless_max_bindset_size = 16 * sizeof(uint);
 
 template<typename T>
-T read_bindset_uniform(uint bindset_buffer, uint bindset_index)
+T read_bindset_uniform(uint bindset_buffer, uint bindset_offset)
 {
     ByteAddressBuffer buffer = ResourceDescriptorHeap[bindset_buffer];
-    return buffer.Load<T>(bindless_max_bindset_size * bindset_index);
+    return buffer.Load<T>(bindset_offset);
 }
 
 struct Resource_Handle
