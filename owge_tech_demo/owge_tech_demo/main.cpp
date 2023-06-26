@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdint>
 #include <owge_d3d12_base/d3d12_util.hpp>
 #include <owge_render_engine/render_engine.hpp>
@@ -68,10 +69,18 @@ int32_t main()
     render_engine->add_procedure(swapchain_pass.get());
     swapchain_pass->add_subprocedure(ocean_tile_render_procedure.get());
 
+    auto current_time = std::chrono::system_clock::now();
+    auto last_time = current_time;
     while (window->get_data().alive)
     {
         window->poll_events();
-        render_engine->render();
+
+        float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
+
+        render_engine->render(delta_time);
+
+        last_time = current_time;
+        current_time = std::chrono::system_clock::now();
     }
     return 0;
 }
