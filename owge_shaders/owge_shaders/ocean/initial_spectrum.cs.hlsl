@@ -1,4 +1,6 @@
 #include "owge_shaders/bindless.hlsli"
+#include "owge_shaders/complex.hlsli"
+#include "owge_shaders/rand.hlsli"
 #include "owge_shaders/ocean/oceanography.hlsli"
 
 struct Spectrum_Parameters
@@ -27,7 +29,7 @@ struct Bindset
 struct Push_Constants
 {
     uint bindset_buffer;
-    uint bindset_index;
+    uint bindset_offset;
     uint __pad0;
     uint __pad1;
 };
@@ -36,11 +38,11 @@ ConstantBuffer<Push_Constants> pc : register(b0, space0);
 [numthreads(32, 32, 1)]
 void cs_main(uint3 id : SV_DispatchThreadID)
 {
-    Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_index);
+    Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_offset);
     Ocean_Parameters pars = bnd.params.load_uniform<Ocean_Parameters>();
 
     int2 id_shifted = int2(id.xy) - int2(pars.size, pars.size) / 2;
-    float delta_k = (2.0f * mc_pi) / pars.lengthscale;
+    float delta_k = (2.0f * MC_PI) / pars.lengthscale;
     float2 k = id_shifted * delta_k;
     float k_len = length(k);
 
@@ -55,7 +57,7 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         omega, omega_peak, theta);
     float spectrum = non_directional_spectrum * directional_spectrum;
     spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / k_len) * pow(delta_k, 2.0f));
-    float2 final_spectrum = float2(1.0f, 1.0f) * spectrum;
+    float2 final_spectrum = box_muller_22(hash_nosine_22(k), 0.0, 1.0) * spectrum;
 
     if(id_shifted.x == 0 && id_shifted.y == 0)
     {
@@ -64,6 +66,6 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         final_spectrum = float2(0.0, 0.0);
     }
 
-    bnd.spectrum_tex.store_2d(id.xy, final_spectrum);
+    bnd.spectrum_tex.store_2d(id.xy, float4(final_spectrum, k));
     bnd.angular_frequency_tex.store_2d(id.xy, omega);
 }
