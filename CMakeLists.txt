@@ -208,13 +208,13 @@ copy_dll_if_not_exist(
 )
 
 download_extract(
-    https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.610.2
+    https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.610.4
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
-    d3d12_agility_1.610.2
+    d3d12_agility_1.610.4
 )
 
 copy_dll_if_not_exist(
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/bin/x64/
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.4/build/native/bin/x64/
     D3D12
 )
 
