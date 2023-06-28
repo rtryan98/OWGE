@@ -117,7 +117,7 @@ float2 box_muller_22(float2 uniform_distr_vals, float mean, float std_deviation)
     float u1 = -2.0 * log(clamp(uniform_distr_vals.x, epsilon, 1.0));
     float u2 = uniform_distr_vals.y;
     float mag = std_deviation * sqrt(u1);
-    return mag * float2(cos(2.0 * mc_pi * u2) + std_deviation, sin(2.0 * mc_pi * u2) + std_deviation);
+    return mag * float2(cos(2.0 * MC_PI * u2) + std_deviation, sin(2.0 * MC_PI * u2) + std_deviation);
 }
 
 #endif
