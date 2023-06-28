@@ -25,6 +25,13 @@ struct Bindset
 {
     void write_data(uint32_t first_element, uint32_t element_count, void* values);
 
+    template<typename T>
+    void write_data(const T& values)
+    {
+        static_assert(sizeof(T) <= sizeof(uint32_t) * MAX_BINDSET_VALUES);
+        memcpy(data, &values, sizeof(T));
+    }
+
     Bindset_Allocation allocation;
     uint32_t data[MAX_BINDSET_VALUES];
 };
