@@ -55,7 +55,7 @@ float oceanography_dispersion_capillary_d_dk(float k, float g, float h)
 
 float oceanography_phillips_spectrum(float omega, float alpha, float g)
 {
-    return alpha * 2.0f * mc_pi * (pow(g, 2.0f) / pow(omega, 5.0f));
+    return alpha * 2.0f * MC_PI * (pow(g, 2.0f) / pow(omega, 5.0f));
 }
 
 float oceanography_pierson_moskowith_omega_0(float g, float u)
@@ -138,8 +138,8 @@ float oceanography_v_yu_karaev_spectrum(float omega, float omega_peak, float ome
 
 float oceanography_positive_cos_sq_directional_spreading(float theta)
 {
-    float a = 2.0f / mc_pi * pow(cos(theta), 2.0f);
-    bool condition = -mc_pi / 2.0f < theta && theta < mc_pi / 2.0f;
+    float a = 2.0f / MC_PI * pow(cos(theta), 2.0f);
+    bool condition = -MC_PI / 2.0f < theta && theta < MC_PI / 2.0f;
     return condition
         ? a
         : 0.0f;
@@ -157,7 +157,7 @@ float __oceanography_mitsuyasu_s(float omega, float omega_peak, float u, float g
 
 float __oceanography_mitsuyasu_q(float s)
 {
-    float a = pow(2.0f, 2.0f * s - 1) / mc_pi;
+    float a = pow(2.0f, 2.0f * s - 1) / MC_PI;
     float b = pow(math_stirling_approximation(s + 1), 2.0f);
     float c = math_stirling_approximation(2.0f * s + 1);
     return a * (b / c);
@@ -208,12 +208,12 @@ float __oceanography_donelan_banner_beta_s(float omega, float omega_peak)
 float oceanography_donelan_banner_directional_spreading(float omega, float omega_peak, float theta)
 {
     float beta_s = __oceanography_donelan_banner_beta_s(omega, omega_peak);
-    return (beta_s/(2.0f * tanh(beta_s * mc_pi))) * pow(math_sech(clamp(beta_s * theta, -9.0, 9.0)), 2.0f);
+    return (beta_s/(2.0f * tanh(beta_s * MC_PI))) * pow(math_sech(clamp(beta_s * theta, -9.0, 9.0)), 2.0f);
 }
 
 float oceanography_flat_directional_spreading()
 {
-    return 1.0f / (2.0f * mc_pi);
+    return 1.0f / (2.0f * MC_PI);
 }
 
 float oceanography_mixed_directional_spreading(float dir_spread_a, float dir_spread_b, float tau)

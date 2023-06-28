@@ -15,7 +15,7 @@ float math_csch(float x)
 
 float math_stirling_approximation(float n)
 {
-    return sqrt(2.0f * mc_pi * n) * pow(n / mc_e, n);
+    return sqrt(2.0f * MC_PI * n) * pow(n / MC_E, n);
 }
 
 #endif // OWGE_MATH
