@@ -90,7 +90,7 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
         .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
     };
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC versioned_rootsig_desc = {
-        .Version = D3D_ROOT_SIGNATURE_VERSION_1_2,
+        .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
         .Desc_1_2 = {
             .NumParameters = 1,
             .pParameters = &global_rootsig_param,
