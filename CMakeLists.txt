@@ -167,7 +167,7 @@ macro(compile_hlsl_profile SHADER PROFILE)
     if(${SHADER} MATCHES "owge_shaders/owge_shaders")
         string(REPLACE "owge_shaders/owge_shaders" "res/builtin/shader" COMPILE_SHADER_OUT ${COMPILE_SHADER_OUT})
     endif()
-    compile_hlsl(${SHADER} ${PROFILE}_6_7 "${PROFILE}_main" ${COMPILE_SHADER_OUT})
+    compile_hlsl(${SHADER} ${PROFILE}_6_6 "${PROFILE}_main" ${COMPILE_SHADER_OUT})
 endmacro()
 
 add_subdirectory(owge_shaders)
