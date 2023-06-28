@@ -24,8 +24,8 @@ struct Ocean_Developed_Spectrum_Shader_Bindset
     uint32_t initial_spectrum_tex_idx;
     uint32_t angular_frequency_tex_idx;
     uint32_t developed_spectrum_tex_idx;
-    uint32_t size;
     float time;
+    uint32_t size;
 };
 
 Ocean_Calculate_Spectra_Render_Procedure::Ocean_Calculate_Spectra_Render_Procedure(
@@ -123,7 +123,7 @@ Ocean_Calculate_Spectra_Render_Procedure::Ocean_Calculate_Spectra_Render_Procedu
         .initial_spectrum_tex_idx = uint32_t(m_initial_spectrum_texture.bindless_idx),
         .angular_frequency_tex_idx = uint32_t(m_angular_frequency_texture.bindless_idx)
     };
-    m_initial_spectrum_bindset.write_data(0, sizeof(Ocean_Initial_Spectrum_Shader_Bindset) / sizeof(uint32_t), &initial_spectrum_bindset_data);
+    m_initial_spectrum_bindset.write_data(initial_spectrum_bindset_data);
     m_render_engine->update_bindings(m_initial_spectrum_bindset);
 
     m_developed_spectrum_bindset = m_render_engine->create_bindset();
@@ -134,6 +134,7 @@ Ocean_Calculate_Spectra_Render_Procedure::~Ocean_Calculate_Spectra_Render_Proced
     m_render_engine->destroy_bindset(m_initial_spectrum_bindset);
 
     m_render_engine->destroy_buffer(m_initial_spectrum_ocean_params_buffer);
+    m_render_engine->destroy_texture(m_developed_spectrum_texture);
     m_render_engine->destroy_texture(m_angular_frequency_texture);
     m_render_engine->destroy_texture(m_initial_spectrum_texture);
     m_render_engine->destroy_pipeline(m_developed_spectrum_compute_pso);
@@ -266,10 +267,10 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
         .initial_spectrum_tex_idx = uint32_t(m_initial_spectrum_texture.bindless_idx),
         .angular_frequency_tex_idx = uint32_t(m_angular_frequency_texture.bindless_idx),
         .developed_spectrum_tex_idx = uint32_t(m_developed_spectrum_texture.bindless_idx),
-        .size = m_ocean_spectrum_pars.size,
-        .time = m_time
+        .time = m_time,
+        .size = m_ocean_spectrum_pars.size
     };
-    m_developed_spectrum_bindset.write_data(0, sizeof(Ocean_Developed_Spectrum_Shader_Bindset) / sizeof(uint32_t), &developed_spectrum_bindset);
+    m_developed_spectrum_bindset.write_data(developed_spectrum_bindset);
     payload.render_engine->update_bindings(m_developed_spectrum_bindset);
     payload.cmd->set_bindset_compute(m_developed_spectrum_bindset);
     payload.cmd->set_pipeline_state(m_developed_spectrum_compute_pso);
