@@ -79,19 +79,16 @@ public:
     [[nodiscard]] Shader& get_shader(Shader_Handle handle);
 
     [[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE get_cpu_descriptor_from_texture(Texture_Handle handle) const;
+    [[nodiscard]] const D3D12_Context* get_context() const
+    {
+        return &m_ctx;
+    }
 
 private:
     [[nodiscard]] std::vector<uint8_t> read_shader_from_file(const std::string& path);
     void empty_deletion_queues(uint64_t frame);
 
 private:
-    template<typename T>
-    struct Deletion_Queue_Resource
-    {
-        T resource;
-        uint64_t frame;
-    };
-
     D3D12_Context m_ctx;
     Render_Engine_Settings m_settings;
     bool m_nvperf_active;
@@ -121,6 +118,12 @@ private:
     std::unique_ptr<Bindset_Allocator> m_bindset_allocator;
     std::unique_ptr<Bindset_Stager> m_bindset_stager;
 
+    template<typename T>
+    struct Deletion_Queue_Resource
+    {
+        T resource;
+        uint64_t frame;
+    };
     std::vector<Deletion_Queue_Resource<Buffer_Handle>> m_buffer_deletion_queue;
     std::vector<Deletion_Queue_Resource<Texture_Handle>> m_texture_deletion_queue;
     std::vector<Deletion_Queue_Resource<Pipeline_Handle>> m_pipeline_deletion_queue;

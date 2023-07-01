@@ -67,6 +67,10 @@ class Command_List
 public:
     Command_List(Render_Engine* render_engine, ID3D12GraphicsCommandList7* cmd);
 
+    [[nodiscard]] ID3D12GraphicsCommandList7* d3d12_cmd()
+    {
+        return m_cmd;
+    }
     [[nodiscard]] Barrier_Builder acquire_barrier_builder();
 
     void clear_depth_stencil(Texture_Handle texture, D3D12_CLEAR_FLAGS flags, float depth, uint8_t stencil);

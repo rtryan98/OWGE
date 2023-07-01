@@ -275,10 +275,21 @@ target_link_libraries(
     unordered_dense
 )
 
+add_owge_lib(owge_imgui)
+target_include_directories(
+    owge_imgui PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui
+)
+target_link_libraries(
+    owge_imgui PUBLIC
+    owge_render_engine
+)
+
 add_owge_exe(owge_tech_demo)
 target_link_libraries(
     owge_tech_demo PUBLIC
     owge_render_engine
+    owge_imgui
 )
 add_dependencies(owge_tech_demo owge_shaders)
 
@@ -324,4 +335,8 @@ endif()
 
 if(MSVC)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT owge_tech_demo)
+    set_source_files_properties( # Why can't I declare that where it belongs CMake? Why does it have to be HERE??
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui/backends/imgui_impl_dx12.cpp
+        PROPERTIES COMPILE_OPTIONS "/W2"
+    )
 endif()

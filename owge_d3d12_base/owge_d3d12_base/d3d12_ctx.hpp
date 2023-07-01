@@ -6,6 +6,8 @@
 
 namespace owge
 {
+static constexpr uint32_t IMGUI_DESCRIPTOR_INDEX = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2 - 1;
+
 struct D3D12_Context_Settings
 {
     bool enable_validation;
