@@ -1,0 +1,37 @@
+{
+    "permutations": [
+        {
+            "name": "128",
+            "defines": [
+                {
+                    "OWGE_FFT_SIZE": 128
+                },
+                {
+                    "OWGE_FFT_LOG_SIZE": 7
+                }
+            ]
+        },
+        {
+            "name": "256",
+            "defines": [
+                {
+                    "OWGE_FFT_SIZE": 256
+                },
+                {
+                    "OWGE_FFT_LOG_SIZE": 8
+                }
+            ]
+        },
+        {
+            "name": "512",
+            "defines": [
+                {
+                    "OWGE_FFT_SIZE": 512
+                },
+                {
+                    "OWGE_FFT_LOG_SIZE": 9
+                }
+            ]
+        }
+    ]
+}
