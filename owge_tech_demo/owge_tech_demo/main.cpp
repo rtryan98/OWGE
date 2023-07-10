@@ -5,6 +5,8 @@
 #include <owge_render_engine/render_procedure/ocean.hpp>
 #include <owge_render_engine/render_procedure/swapchain_pass.hpp>
 #include <owge_window/window.hpp>
+#include <owge_imgui/imgui_utils.hpp>
+#include <owge_imgui/imgui_render_procedure.hpp>
 
 int32_t main()
 {
@@ -12,15 +14,15 @@ int32_t main()
         .width = 1920,
         .height = 1080,
         .title = "OWGE Tech Demo",
-        .userproc = nullptr
+        .userproc = ImGui_ImplWin32_WndProcHandler
     };
     auto window = std::make_unique<owge::Window>(
         window_settings);
     owge::D3D12_Context_Settings d3d12_settings = {
-        .enable_validation = false,
+        .enable_validation = true,
         .enable_gpu_based_validation = false,
         .disable_tdr = false,
-        .d3d_feature_level = D3D_FEATURE_LEVEL_12_2,
+        .d3d_feature_level = D3D_FEATURE_LEVEL_12_1,
         .static_samplers = {}
     };
     owge::Render_Engine_Settings render_engine_settings = {
@@ -41,17 +43,17 @@ int32_t main()
 
     };
     owge::Ocean_Spectrum_Ocean_Parameters ocean_spectrum_ocean_parameters = {
-        .size = 256,
-        .length_scale = 128.0f,
+        .size = 512,
+        .length_scale = 512.0f,
         .gravity = 9.81f,
         .ocean_depth = 35.0f,
         .spectra = {
             {
-                .wind_speed = 45.0f,
-                .fetch = 512.0f
+                .wind_speed = 15.0f,
+                .fetch = 4096.0f
             },
             {
-                .wind_speed = 45.0f,
+                .wind_speed = 15.0f,
                 .fetch = 32768.0f
             }
         }
@@ -64,16 +66,22 @@ int32_t main()
             render_engine.get(), ocean_spectrum_ocean_parameters);
     auto ocean_tile_render_procedure =
         std::make_unique<owge::Ocean_Tile_Render_Procedure>();
+    auto imgui_render_procedure =
+        std::make_unique<owge::Imgui_Render_Procedure>();
 
     render_engine->add_procedure(ocean_calculate_spectra_render_procedure.get());
     render_engine->add_procedure(swapchain_pass.get());
     swapchain_pass->add_subprocedure(ocean_tile_render_procedure.get());
+    swapchain_pass->add_subprocedure(imgui_render_procedure.get());
+
+    owge::imgui_init(window->get_hwnd(), render_engine.get());
 
     auto current_time = std::chrono::system_clock::now();
     auto last_time = current_time;
     while (window->get_data().alive)
     {
         window->poll_events();
+        owge::imgui_new_frame();
 
         float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
 
@@ -82,5 +90,8 @@ int32_t main()
         last_time = current_time;
         current_time = std::chrono::system_clock::now();
     }
+
+    owge::imgui_shutdown();
+
     return 0;
 }
