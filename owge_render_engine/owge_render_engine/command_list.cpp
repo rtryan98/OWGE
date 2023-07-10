@@ -179,6 +179,16 @@ void Command_List::set_bindset_graphics(const Bindset& bindset)
     m_cmd->SetGraphicsRoot32BitConstants(0, 2, &alloc, 0);
 }
 
+void Command_List::set_constants_compute(uint32_t count, void* constants, uint32_t first_constant)
+{
+    m_cmd->SetComputeRoot32BitConstants(0, count, constants, first_constant);
+}
+
+void Command_List::set_constants_graphics(uint32_t count, void* constants, uint32_t first_constant)
+{
+    m_cmd->SetGraphicsRoot32BitConstants(0, count, constants, first_constant);
+}
+
 void Command_List::set_pipeline_state(Pipeline_Handle handle)
 {
     auto& pipeline = m_render_engine->get_pipeline(handle);

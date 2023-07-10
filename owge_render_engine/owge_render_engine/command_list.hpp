@@ -86,6 +86,8 @@ public:
         uint32_t instance_count, uint32_t instance_offset, uint32_t base_vertex);
     void set_bindset_compute(const Bindset& bindset);
     void set_bindset_graphics(const Bindset& bindset);
+    void set_constants_compute(uint32_t count, void* constants, uint32_t first_constant);
+    void set_constants_graphics(uint32_t count, void* constants, uint32_t first_constant);
     void set_pipeline_state(Pipeline_Handle handle);
     void set_render_targets(std::span<Texture_Handle> textures, Texture_Handle depth_stencil);
     void set_render_target_swapchain(D3D12_Swapchain* swapchain, Texture_Handle depth_stencil);

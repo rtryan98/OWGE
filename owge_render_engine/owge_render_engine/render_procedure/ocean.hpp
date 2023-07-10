@@ -43,8 +43,15 @@ public:
     virtual void process(const Render_Procedure_Payload& payload) override;
 
 private:
+    void initial_spectrum_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder);
+    void developed_spectrum_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder);
+    void fft_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder);
+
+private:
     Render_Engine* m_render_engine;
 
+    Shader_Handle m_fft_shader;
+    Pipeline_Handle m_fft_compute_pso;
     Shader_Handle m_initial_spectrum_shader;
     Pipeline_Handle m_initial_spectrum_compute_pso;
     Shader_Handle m_developed_spectrum_shader;

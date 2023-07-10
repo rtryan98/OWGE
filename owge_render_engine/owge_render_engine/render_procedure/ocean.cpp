@@ -35,6 +35,17 @@ Ocean_Calculate_Spectra_Render_Procedure::Ocean_Calculate_Spectra_Render_Procedu
     m_render_engine(render_engine),
     m_ocean_spectrum_pars(ocean_spectrum_pars)
 {
+    Shader_Desc fft_shader_desc = {
+        .path = ".\\res\\builtin\\shader\\ocean\\fft_512.cs.bin"
+    };
+    m_fft_shader = m_render_engine->create_shader(fft_shader_desc);
+    Compute_Pipeline_Desc fft_compute_pso_desc = {
+        .cs = m_fft_shader
+    };
+    m_fft_compute_pso = m_render_engine->create_pipeline(
+        fft_compute_pso_desc,
+        L"PSO:Ocean:Compute:fft_512");
+
     Shader_Desc initial_spectrum_shader_desc = {
         .path = ".\\res\\builtin\\shader\\ocean\\initial_spectrum.cs.bin"
     };
@@ -141,13 +152,31 @@ Ocean_Calculate_Spectra_Render_Procedure::~Ocean_Calculate_Spectra_Render_Proced
     m_render_engine->destroy_shader(m_developed_spectrum_shader);
     m_render_engine->destroy_pipeline(m_initial_spectrum_compute_pso);
     m_render_engine->destroy_shader(m_initial_spectrum_shader);
+    m_render_engine->destroy_pipeline(m_fft_compute_pso);
+    m_render_engine->destroy_shader(m_fft_shader);
 }
+
+struct FFT_Constants
+{
+    uint32_t texture;
+    uint32_t vertical;
+    uint32_t inverse;
+    uint32_t scale;
+};
 
 void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Payload& payload)
 {
     auto barrier_builder = payload.cmd->acquire_barrier_builder();
-    auto size = m_ocean_spectrum_pars.size;
     m_time += payload.delta_time;
+    payload.cmd->begin_event("Ocean_Simulation");
+    initial_spectrum_pass(payload, barrier_builder);
+    developed_spectrum_pass(payload, barrier_builder);
+    fft_pass(payload, barrier_builder);
+}
+
+void Ocean_Calculate_Spectra_Render_Procedure::initial_spectrum_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
+{
+    auto size = m_ocean_spectrum_pars.size;
     if (m_is_dirty)
     {
         payload.cmd->begin_event("Initial_Spectrum_Computation");
@@ -241,7 +270,11 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
         payload.cmd->end_event();
         m_is_dirty = true;
     }
+}
 
+void Ocean_Calculate_Spectra_Render_Procedure::developed_spectrum_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
+{
+    auto size = m_ocean_spectrum_pars.size;
     payload.cmd->begin_event("Developed_Spectrum_Computation");
     barrier_builder.push({
         .texture = m_developed_spectrum_texture,
@@ -281,9 +314,9 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
         .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
         .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
         .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-        .access_after = D3D12_BARRIER_ACCESS_SHADER_RESOURCE,
+        .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
         .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-        .layout_after = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
+        .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
         .subresources = {
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
@@ -295,6 +328,117 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
         });
     barrier_builder.flush();
+    payload.cmd->end_event();
+}
+
+void Ocean_Calculate_Spectra_Render_Procedure::fft_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
+{
+    auto size = m_ocean_spectrum_pars.size;
+    payload.cmd->begin_event("FFT");
+    payload.cmd->set_pipeline_state(m_fft_compute_pso);
+    FFT_Constants fft_constants = {
+        .texture = uint32_t(m_developed_spectrum_texture.bindless_idx),
+        .vertical = false,
+        .inverse = true,
+        .scale = true
+    };
+    payload.cmd->set_constants_compute(3, &fft_constants, 0);
+    payload.cmd->dispatch(1, size, 1);
+    barrier_builder.push({
+        .texture = m_developed_spectrum_texture,
+        .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .subresources = {
+            .IndexOrFirstMipLevel = 0,
+            .NumMipLevels = 1,
+            .FirstArraySlice = 0,
+            .NumArraySlices = 1,
+            .FirstPlane = 0,
+            .NumPlanes = 1
+        },
+        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+        });
+    barrier_builder.flush();
+
+    fft_constants.vertical = true;
+    payload.cmd->set_constants_compute(3, &fft_constants, 0);
+    payload.cmd->dispatch(1, size, 1);
+    barrier_builder.push({
+        .texture = m_developed_spectrum_texture,
+        .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .subresources = {
+            .IndexOrFirstMipLevel = 0,
+            .NumMipLevels = 1,
+            .FirstArraySlice = 0,
+            .NumArraySlices = 1,
+            .FirstPlane = 0,
+            .NumPlanes = 1
+        },
+        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+        });
+    barrier_builder.flush();
+
+    {
+        fft_constants.scale = false;
+        fft_constants.inverse = false;
+        fft_constants.vertical = false;
+        payload.cmd->set_constants_compute(3, &fft_constants, 0);
+        payload.cmd->dispatch(1, size, 1);
+        barrier_builder.push({
+            .texture = m_developed_spectrum_texture,
+            .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .subresources = {
+                .IndexOrFirstMipLevel = 0,
+                .NumMipLevels = 1,
+                .FirstArraySlice = 0,
+                .NumArraySlices = 1,
+                .FirstPlane = 0,
+                .NumPlanes = 1
+            },
+            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+            });
+        barrier_builder.flush();
+
+        fft_constants.vertical = true;
+        payload.cmd->set_constants_compute(3, &fft_constants, 0);
+        payload.cmd->dispatch(1, size, 1);
+        barrier_builder.push({
+            .texture = m_developed_spectrum_texture,
+            .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+            .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+            .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+            .subresources = {
+                .IndexOrFirstMipLevel = 0,
+                .NumMipLevels = 1,
+                .FirstArraySlice = 0,
+                .NumArraySlices = 1,
+                .FirstPlane = 0,
+                .NumPlanes = 1
+            },
+            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+            });
+        barrier_builder.flush();
+    }
+
+    payload.cmd->end_event();
+
     payload.cmd->end_event();
 }
 
