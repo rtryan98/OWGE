@@ -3,9 +3,9 @@
 
 float2 complex_from_polar(float r, float phi)
 {
-    // float s, c;
-    // sincos(phi, s, c);
-    return r * float2(cos(phi), sin(phi));
+    float2 result;
+    sincos(phi, result.y, result.x);
+    return r * result;
 }
 
 float2 complex_add(float2 a, float2 b)
