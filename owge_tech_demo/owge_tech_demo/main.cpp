@@ -49,11 +49,11 @@ int32_t main()
         .ocean_depth = 35.0f,
         .spectra = {
             {
-                .wind_speed = 15.0f,
+                .wind_speed = 3.5f,
                 .fetch = 4096.0f
             },
             {
-                .wind_speed = 15.0f,
+                .wind_speed = 3.5f,
                 .fetch = 32768.0f
             }
         }
