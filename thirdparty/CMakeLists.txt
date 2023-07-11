@@ -23,6 +23,7 @@ target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/implot)
 add_library(
     implot
+    ${IMPLOT_DIR}/implot.cpp
     ${IMPLOT_DIR}/implot.h
     ${IMPLOT_DIR}/implot_demo.cpp
     ${IMPLOT_DIR}/implot_internal.h

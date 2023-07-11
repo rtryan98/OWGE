@@ -4,6 +4,7 @@
 
 #include <backends/imgui_impl_dx12.h>
 #include <backends/imgui_impl_win32.h>
+#include <implot.h>
 
 namespace owge
 {
@@ -105,6 +106,9 @@ void imgui_init(HWND hwnd, Render_Engine* render_engine)
     font_srv_gpu_descriptor.ptr += IMGUI_DESCRIPTOR_INDEX * increment;
     ImGui_ImplDX12_Init(ctx->device, MAX_CONCURRENT_GPU_FRAMES, DXGI_FORMAT_R8G8B8A8_UNORM,
         ctx->cbv_srv_uav_descriptor_heap, font_srv_cpu_descriptor, font_srv_gpu_descriptor);
+
+    ImPlot::CreateContext();
+
     imgui_set_theme();
 }
 
@@ -119,5 +123,7 @@ void imgui_shutdown()
 {
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    ImPlot::DestroyContext();
+    ImGui::DestroyContext();
 }
 }
