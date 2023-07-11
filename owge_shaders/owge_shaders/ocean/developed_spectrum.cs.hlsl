@@ -34,6 +34,7 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float phi = bnd.time * omega_k;
     float2 cmul_term = complex_from_polar(1.0, phi);
     float2 developed_spectrum = 0.5 * (complex_mul(spectrum, cmul_term) + complex_mul(spectrum_minus_k, complex_conjugate(cmul_term)));
+
     float2 rotated_developed_spectrum = float2(-developed_spectrum.y, developed_spectrum.x); // multiplication by i
 
     float2 displacement_x = rotated_developed_spectrum * wavenumber.x * (1.0 / mag);
@@ -57,6 +58,5 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 
     uint2 shifted_pos = (id.xy + uint2(bnd.size, bnd.size) / 2) % bnd.size;
 
-    //bnd.developed_spectrum_tex.store_2d<float2>(id.xy, packed_spectrum_z_x_dx);
-    bnd.developed_spectrum_tex.store_2d<float2>(shifted_pos, developed_spectrum);
+    bnd.developed_spectrum_tex.store_2d<float2>(shifted_pos, packed_spectrum_x_y);
 }
