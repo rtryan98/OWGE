@@ -56,10 +56,10 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float directional_spectrum = oceanography_donelan_banner_directional_spreading(
         omega, omega_peak, theta);
     float spectrum = non_directional_spectrum * directional_spectrum;
-    spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / k_len) * pow(delta_k, 2.0f));
-    float2 final_spectrum = box_muller_22(hash_nosine_22(k), 0.0, 1.0) * spectrum;
+    spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / k_len) * delta_k * delta_k);
+    float2 final_spectrum = box_muller_22(float2(pcg2d(id.xy)) * (1.0/float(0xffffffffu)), 0.0, 1.0) * spectrum;
 
-    if(id_shifted.x == 0 && id_shifted.y == 0)
+    if((id_shifted.x == 0 && id_shifted.y == 0))
     {
         // We need to set the 0th wavevector to 0.
         // This does not break the calculation either, as this only corresponds to the DC-part of the spectrum.
