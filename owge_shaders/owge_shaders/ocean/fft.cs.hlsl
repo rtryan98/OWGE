@@ -20,7 +20,7 @@ struct Push_Constants
     RW_Texture input_output;
     uint vertical; // Horizontal if 0, Vertical if 1
     uint inverse;  // Forward if 0, Inverse if 1
-    uint scale;
+    uint __pad0;
 };
 ConstantBuffer<Push_Constants> pc : register(b0, space0);
 
@@ -52,20 +52,7 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     uint2 texpos = bool(pc.vertical)
         ? id.xy
         : id.yx;
-    // texpos += uint2(OWGE_FFT_SIZE / 2, OWGE_FFT_SIZE / 2);
-    // texpos.x %= OWGE_FFT_SIZE;
-    // texpos.y %= OWGE_FFT_SIZE;
     ping_pong_buffer[ping_pong][reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)] = pc.input_output.load_2d<float2>(texpos);
-    // 
-    // ping_pong_buffer[ping_pong][id.x] = pc.input_output.load_2d<float2>(texpos);
-    // if(pc.vertical)
-    // {
-    //     ping_pong_buffer[ping_pong][id.x] = pc.input_output.load_2d<float2>(uint2(reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE), texpos.y));
-    // }
-    // else
-    // {
-    //     ping_pong_buffer[ping_pong][id.x] = pc.input_output.load_2d<float2>(uint2(texpos.x, reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)));
-    // }
     GroupMemoryBarrierWithGroupSync();
 
     [unroll(OWGE_FFT_LOG_SIZE)] for (uint i = 0; i < OWGE_FFT_LOG_SIZE; i++)
@@ -79,19 +66,5 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         ping_pong = !ping_pong;
     }
 
-    float scale = 1.0;
-    if(pc.scale)
-    {
-        scale /= float(OWGE_FFT_SIZE);
-    }
-    pc.input_output.store_2d(texpos, scale * ping_pong_buffer[ping_pong][id.x]);
-    // pc.input_output.store_2d(texpos, ping_pong_buffer[ping_pong][reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)]);
-    // if(pc.vertical)
-    // {
-    //     pc.input_output.store_2d<float2>(uint2(reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE), texpos.y), ping_pong_buffer[ping_pong][id.x]);
-    // }
-    // else
-    // {
-    //     pc.input_output.store_2d<float2>(uint2(texpos.x, reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)), ping_pong_buffer[ping_pong][id.x]);
-    // }
+    pc.input_output.store_2d(texpos, ping_pong_buffer[ping_pong][id.x]);
 }
