@@ -161,7 +161,6 @@ struct FFT_Constants
     uint32_t texture;
     uint32_t vertical;
     uint32_t inverse;
-    uint32_t scale;
 };
 
 void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Payload& payload)
@@ -172,6 +171,7 @@ void Ocean_Calculate_Spectra_Render_Procedure::process(const Render_Procedure_Pa
     initial_spectrum_pass(payload, barrier_builder);
     developed_spectrum_pass(payload, barrier_builder);
     fft_pass(payload, barrier_builder);
+    payload.cmd->end_event();
 }
 
 void Ocean_Calculate_Spectra_Render_Procedure::initial_spectrum_pass(const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
@@ -339,10 +339,9 @@ void Ocean_Calculate_Spectra_Render_Procedure::fft_pass(const Render_Procedure_P
     FFT_Constants fft_constants = {
         .texture = uint32_t(m_developed_spectrum_texture.bindless_idx),
         .vertical = false,
-        .inverse = true,
-        .scale = true
+        .inverse = true
     };
-    payload.cmd->set_constants_compute(3, &fft_constants, 0);
+    payload.cmd->set_constants_compute(sizeof(FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
     payload.cmd->dispatch(1, size, 1);
     barrier_builder.push({
         .texture = m_developed_spectrum_texture,
@@ -365,7 +364,7 @@ void Ocean_Calculate_Spectra_Render_Procedure::fft_pass(const Render_Procedure_P
     barrier_builder.flush();
 
     fft_constants.vertical = true;
-    payload.cmd->set_constants_compute(3, &fft_constants, 0);
+    payload.cmd->set_constants_compute(sizeof(FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
     payload.cmd->dispatch(1, size, 1);
     barrier_builder.push({
         .texture = m_developed_spectrum_texture,
@@ -386,59 +385,6 @@ void Ocean_Calculate_Spectra_Render_Procedure::fft_pass(const Render_Procedure_P
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
         });
     barrier_builder.flush();
-
-    {
-        fft_constants.scale = false;
-        fft_constants.inverse = false;
-        fft_constants.vertical = false;
-        payload.cmd->set_constants_compute(3, &fft_constants, 0);
-        payload.cmd->dispatch(1, size, 1);
-        barrier_builder.push({
-            .texture = m_developed_spectrum_texture,
-            .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-            .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-            .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-            .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-            .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-            .subresources = {
-                .IndexOrFirstMipLevel = 0,
-                .NumMipLevels = 1,
-                .FirstArraySlice = 0,
-                .NumArraySlices = 1,
-                .FirstPlane = 0,
-                .NumPlanes = 1
-            },
-            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-            });
-        barrier_builder.flush();
-
-        fft_constants.vertical = true;
-        payload.cmd->set_constants_compute(3, &fft_constants, 0);
-        payload.cmd->dispatch(1, size, 1);
-        barrier_builder.push({
-            .texture = m_developed_spectrum_texture,
-            .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-            .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-            .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-            .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-            .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-            .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-            .subresources = {
-                .IndexOrFirstMipLevel = 0,
-                .NumMipLevels = 1,
-                .FirstArraySlice = 0,
-                .NumArraySlices = 1,
-                .FirstPlane = 0,
-                .NumPlanes = 1
-            },
-            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-            });
-        barrier_builder.flush();
-    }
-
-    payload.cmd->end_event();
-
     payload.cmd->end_event();
 }
 
