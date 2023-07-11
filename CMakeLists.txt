@@ -283,6 +283,8 @@ target_include_directories(
 target_link_libraries(
     owge_imgui PUBLIC
     owge_render_engine
+    imgui
+    implot
 )
 
 add_owge_exe(owge_tech_demo)
