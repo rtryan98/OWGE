@@ -278,7 +278,6 @@ target_link_libraries(
 add_owge_lib(owge_imgui)
 target_include_directories(
     owge_imgui PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui
 )
 target_link_libraries(
     owge_imgui PUBLIC
@@ -287,11 +286,18 @@ target_link_libraries(
     implot
 )
 
+add_owge_lib(owge_render_techniques)
+target_link_libraries(
+    owge_render_techniques PUBLIC
+    owge_render_engine
+    owge_imgui
+)
+
 add_owge_exe(owge_tech_demo)
 target_link_libraries(
     owge_tech_demo PUBLIC
     owge_render_engine
-    owge_imgui
+    owge_render_techniques
 )
 add_dependencies(owge_tech_demo owge_shaders)
 
