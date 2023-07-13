@@ -2,11 +2,15 @@
 #include <cstdint>
 #include <owge_d3d12_base/d3d12_util.hpp>
 #include <owge_render_engine/render_engine.hpp>
-#include <owge_render_engine/render_procedure/ocean.hpp>
 #include <owge_render_engine/render_procedure/swapchain_pass.hpp>
 #include <owge_window/window.hpp>
 #include <owge_imgui/imgui_utils.hpp>
 #include <owge_imgui/imgui_render_procedure.hpp>
+#include <owge_render_techniques/render_technique_settings.hpp>
+
+#include <owge_render_techniques/ocean/ocean_settings.hpp>
+#include <owge_render_techniques/ocean/ocean_simulation_render_procedure.hpp>
+#include <owge_render_techniques/ocean/ocean_render_resources.hpp>
 
 int32_t main()
 {
@@ -39,39 +43,19 @@ int32_t main()
     };
     auto swapchain_pass = std::make_unique<owge::Swapchain_Pass_Render_Procedure>(
         swapchain_pass_settings);
-    owge::Ocean_Settings ocean_settings = {
 
-    };
-    owge::Ocean_Spectrum_Ocean_Parameters ocean_spectrum_ocean_parameters = {
-        .size = 512,
-        .length_scale = 512.0f,
-        .gravity = 9.81f,
-        .ocean_depth = 35.0f,
-        .spectra = {
-            {
-                .wind_speed = 3.5f,
-                .fetch = 4096.0f
-            },
-            {
-                .wind_speed = 3.5f,
-                .fetch = 32768.0f
-            }
-        }
-    };
-    owge::Ocean_Tile_Settings ocean_tile_settings = {
+    auto ocean_resources = owge::Ocean_Simulation_Render_Resources{};
+    auto ocean_render_technique_settings = owge::Ocean_Render_Technique_Settings(render_engine.get(), &ocean_resources);
+    ocean_resources.create(render_engine.get(), &ocean_render_technique_settings.settings);
+    auto ocean_simulation_render_procedure = std::make_unique<owge::Ocean_Simulation_Render_Procedure>(
+        &ocean_render_technique_settings.settings, &ocean_resources
+        );
 
-    };
-    auto ocean_calculate_spectra_render_procedure =
-        std::make_unique<owge::Ocean_Calculate_Spectra_Render_Procedure>(
-            render_engine.get(), ocean_spectrum_ocean_parameters);
-    auto ocean_tile_render_procedure =
-        std::make_unique<owge::Ocean_Tile_Render_Procedure>();
     auto imgui_render_procedure =
         std::make_unique<owge::Imgui_Render_Procedure>();
 
-    render_engine->add_procedure(ocean_calculate_spectra_render_procedure.get());
+    render_engine->add_procedure(ocean_simulation_render_procedure.get());
     render_engine->add_procedure(swapchain_pass.get());
-    swapchain_pass->add_subprocedure(ocean_tile_render_procedure.get());
     swapchain_pass->add_subprocedure(imgui_render_procedure.get());
 
     owge::imgui_init(window->get_hwnd(), render_engine.get());
@@ -85,6 +69,15 @@ int32_t main()
 
         float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
 
+        ImGui::ShowDemoWindow();
+
+        static bool renderer_settings_open = true;
+        ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, 512.0f), ImVec2(2.0f * 512.0f, 2.0f * 512.0f));
+        ImGui::Begin("Renderer Settings", &renderer_settings_open,
+            ImGuiWindowFlags_HorizontalScrollbar);
+        ocean_render_technique_settings.on_gui();
+        ImGui::End();
+
         render_engine->render(delta_time);
 
         last_time = current_time;
@@ -92,6 +85,7 @@ int32_t main()
     }
 
     owge::imgui_shutdown();
+    ocean_resources.destroy(render_engine.get());
 
     return 0;
 }
