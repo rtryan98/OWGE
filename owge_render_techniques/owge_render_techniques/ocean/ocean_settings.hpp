@@ -46,14 +46,21 @@ struct Ocean_Settings
     float length_scales[MAX_CASCADES] = { 8.0f, 32.0f, 256.0f, 1024.0f };
     float gravity = 9.81f;
     float ocean_depth = 35.0f;
+    float horizontal_displacement_scale = 1.0f;
     bool swell_enabled = true;
+    bool recompute_initial_spectrum = true;
     Ocean_Spectra_Settings local_spectrum;
     Ocean_Spectra_Settings swell_spectrum;
 };
 
+struct Ocean_Simulation_Render_Resources;
+class Render_Engine;
+
 struct Ocean_Render_Technique_Settings : public Render_Technique_Settings
 {
-    Ocean_Render_Technique_Settings();
+    Ocean_Render_Technique_Settings(
+        Render_Engine* render_engine,
+        Ocean_Simulation_Render_Resources* resources);
 
     Ocean_Settings settings;
     virtual void on_gui() override;
@@ -71,7 +78,8 @@ private:
 
 private:
     int32_t m_last_selected_preset;
-
+    Render_Engine* m_render_engine;
+    Ocean_Simulation_Render_Resources* m_resources;
     /*
     bool m_dirty_plot = true;
     std::array<uint32_t, Ocean_Settings::MAX_CASCADES> m_plot_cascade_offsets;

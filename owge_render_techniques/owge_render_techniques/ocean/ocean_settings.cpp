@@ -1,4 +1,5 @@
 #include "owge_render_techniques/ocean/ocean_settings.hpp"
+#include "owge_render_techniques/ocean/ocean_render_resources.hpp"
 
 #include <bit>
 #include <utility>
@@ -27,7 +28,6 @@ const char* to_string(Ocean_Spectrum spectrum) noexcept
     default:
         std::unreachable();
     }
-    return nullptr;
 }
 
 const char* to_string(Ocean_Directional_Spreading_Function directional_spreading_function) noexcept
@@ -45,7 +45,6 @@ const char* to_string(Ocean_Directional_Spreading_Function directional_spreading
     default:
         std::unreachable();
     }
-    return nullptr;
 }
 
 bool is_compatible(Ocean_Spectrum spectrum, Ocean_Directional_Spreading_Function directional_spreading_function)
@@ -130,8 +129,11 @@ constexpr static Ocean_Simulation_Preset presets[] = {
     },
 };
 
-Ocean_Render_Technique_Settings::Ocean_Render_Technique_Settings()
-    : settings(presets[0].settings), m_last_selected_preset(0)
+Ocean_Render_Technique_Settings::Ocean_Render_Technique_Settings(
+    Render_Engine* render_engine,
+    Ocean_Simulation_Render_Resources* resources)
+    : settings(presets[0].settings), m_last_selected_preset(0),
+    m_render_engine(render_engine), m_resources(resources)
 {}
 
 void Ocean_Render_Technique_Settings::on_gui()
@@ -200,10 +202,18 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
         ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::SeparatorText("General Simulation Settings");
         static const char* sizes[] = { "128x128", "256x256", "512x512" };
+        uint32_t current_size = settings.size;
         int selected_size = std::countr_zero(settings.size) - std::countr_zero(128u);
         ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
         ImGui::Combo("Size", &selected_size, sizes, IM_ARRAYSIZE(sizes));
         settings.size = 1u << (selected_size + std::countr_zero(128u));
+        ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
+        ImGui::SliderFloat("Horizontal Displacement Scale", &this->settings.horizontal_displacement_scale, 0.0f, 1.0f);
+
+        if (settings.size != current_size)
+        {
+            m_resources->resize_textures(m_render_engine, &this->settings);
+        }
 
         static const char* cascade_options[] = { "1", "2", "3", "4" };
         int32_t current_cascade = settings.cascade_count - 1;
@@ -215,13 +225,6 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
             std::string cascade_string = "Cascade " + std::to_string(i + 1) + " Lengthscale";
             ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
             ImGui::InputFloat(cascade_string.c_str(), &settings.length_scales[i], 0.5f);
-            for (auto j = i, k = 1u; j < settings.cascade_count + 1; ++j, ++k)
-            {
-                if (settings.length_scales[i] > settings.length_scales[j])
-                {
-                    settings.length_scales[j] = settings.length_scales[i] + float(k) * 4.0f;
-                }
-            }
         }
         ImGui::Checkbox("Swell Enabled", &this->settings.swell_enabled);
 
@@ -345,6 +348,7 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
             ImPlot::EndPlot();
         }
         */
+        ImGui::TreePop();
     }
 }
 
@@ -352,7 +356,7 @@ void Ocean_Render_Technique_Settings::on_gui_render()
 {
     if (ImGui::TreeNode("Render Settings"))
     {
-
+        ImGui::TreePop();
     }
 }
 }
