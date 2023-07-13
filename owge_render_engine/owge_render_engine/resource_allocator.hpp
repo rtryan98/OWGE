@@ -69,6 +69,7 @@ public:
         data.flags = 0;
         data.gen += 1;
         data.element = {};
+        data.next = m_head;
         m_head = handle.resource_idx;
     }
 
