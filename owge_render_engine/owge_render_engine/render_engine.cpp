@@ -197,6 +197,7 @@ void Render_Engine::render(float delta_time)
         m_ctx.cbv_srv_uav_descriptor_heap, m_ctx.sampler_descriptor_heap
         });
     procedure_cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
+
     for (auto procedure : m_procedures)
     {
         procedure_cmd_list.begin_event(procedure->get_name());
@@ -882,9 +883,9 @@ void Render_Engine::empty_deletion_queues(uint64_t frame)
         {
             auto& buffer = m_buffers[element.resource];
             buffer.resource->Release();
-            m_buffers.remove(element.resource);
-            m_cbv_srv_uav_descriptor_allocator->free(element.resource.bindless_idx);
             m_cbv_srv_uav_descriptor_allocator->free(uint32_t(element.resource.bindless_idx + 1));
+            m_cbv_srv_uav_descriptor_allocator->free(element.resource.bindless_idx);
+            m_buffers.remove(element.resource);
             return true;
         }
         return false;
@@ -896,9 +897,9 @@ void Render_Engine::empty_deletion_queues(uint64_t frame)
         {
             auto& texture = m_textures[element.resource];
             texture.resource->Release();
-            m_textures.remove(element.resource);
-            m_cbv_srv_uav_descriptor_allocator->free(element.resource.bindless_idx);
             m_cbv_srv_uav_descriptor_allocator->free(uint32_t(element.resource.bindless_idx + 1));
+            m_cbv_srv_uav_descriptor_allocator->free(element.resource.bindless_idx);
+            m_textures.remove(element.resource);
             return true;
         }
         return false;
