@@ -23,7 +23,7 @@ void imgui_set_theme()
     colors[ImGuiCol_FrameBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
     colors[ImGuiCol_FrameBgHovered] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
     colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
-    colors[ImGuiCol_TitleBg] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+    colors[ImGuiCol_TitleBg] = ImVec4(0.01f, 0.01f, 0.01f, 1.00f);
     colors[ImGuiCol_TitleBgActive] = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
     colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
@@ -34,13 +34,13 @@ void imgui_set_theme()
     colors[ImGuiCol_CheckMark] = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
     colors[ImGuiCol_SliderGrab] = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
     colors[ImGuiCol_SliderGrabActive] = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
-    colors[ImGuiCol_Button] = ImVec4(0.05f, 0.05f, 0.05f, 0.54f);
+    colors[ImGuiCol_Button] = ImVec4(0.025f, 0.025f, 0.025f, 0.54f);
     colors[ImGuiCol_ButtonHovered] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
     colors[ImGuiCol_ButtonActive] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
     colors[ImGuiCol_Header] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
     colors[ImGuiCol_HeaderHovered] = ImVec4(0.00f, 0.00f, 0.00f, 0.36f);
     colors[ImGuiCol_HeaderActive] = ImVec4(0.20f, 0.22f, 0.23f, 0.33f);
-    colors[ImGuiCol_Separator] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+    colors[ImGuiCol_Separator] = ImVec4(0.35f, 0.35f, 0.35f, 0.29f);
     colors[ImGuiCol_SeparatorHovered] = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
     colors[ImGuiCol_SeparatorActive] = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
     colors[ImGuiCol_ResizeGrip] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
@@ -92,6 +92,21 @@ void imgui_set_theme()
     style.GrabRounding = 3;
     style.LogSliderDeadzone = 4;
     style.TabRounding = 4;
+
+    auto& imgui_io = ImGui::GetIO();
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    imgui_io.ConfigDockingAlwaysTabBar = false;
+    IM_DELETE(imgui_io.Fonts);
+    imgui_io.Fonts = IM_NEW(ImFontAtlas);
+    ImFontConfig font_cfg = {};
+    font_cfg.OversampleH = 4;
+    font_cfg.OversampleV = 4;
+    font_cfg.PixelSnapH = false;
+    imgui_io.Fonts->AddFontFromFileTTF(
+        "res/font/roboto_mono/static/RobotoMono-Regular.ttf",
+        14.0f,
+        &font_cfg);
+    imgui_io.Fonts->Build();
 }
 
 void imgui_init(HWND hwnd, Render_Engine* render_engine)
