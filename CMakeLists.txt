@@ -250,7 +250,7 @@ option(OWGE_USE_WIN_PIX_EVENT_RUNTIME "Use WinPixEventRuntime" ON)
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native
 )
 target_link_libraries(
     owge_d3d12_base PUBLIC

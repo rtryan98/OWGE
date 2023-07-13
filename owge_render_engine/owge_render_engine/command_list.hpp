@@ -3,7 +3,7 @@
 #include "owge_render_engine/resource.hpp"
 
 #include <cstdint>
-#include <d3d12.h>
+#include <include/d3d12.h>
 #include <span>
 #include <vector>
 

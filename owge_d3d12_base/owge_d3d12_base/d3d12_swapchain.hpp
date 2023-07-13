@@ -3,7 +3,7 @@
 #include "owge_d3d12_base/com_ptr.hpp"
 
 #include <array>
-#include <d3d12.h>
+#include <include/d3d12.h>
 #include <dxgi1_6.h>
 
 namespace owge
