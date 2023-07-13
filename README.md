@@ -7,7 +7,9 @@ On AMD hardware it might be required to download different drivers than the main
 
 ## Build
 Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
-1. Run `cmake -G "Visual Studio 17" -B "build/"`.
+1. Clone the repository with submodules.
+2. Run `cmake -G "Visual Studio 17" -B "build/"`.
+3. Run `cmake --build build --config Release`.
 
 Optional steps:
 - NVIDIA Nsight Perf SDK:
