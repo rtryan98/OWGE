@@ -242,10 +242,24 @@ struct RW_Texture
     }
 
     template<typename T>
+    T load_1d_array(uint2 pos)
+    {
+        Texture1DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        return texture.Load(uint3(pos.x, 0, pos.y));
+    }
+
+    template<typename T>
     T load_2d(uint2 pos)
     {
         Texture2D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
         return texture.Load(uint3(pos, 0));
+    }
+
+    template<typename T>
+    T load_2d_array(uint3 pos)
+    {
+        Texture2DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        return texture.Load(uint4(pos.xy, 0, pos.z));
     }
 
     template<typename T>
@@ -258,21 +272,35 @@ struct RW_Texture
     template<typename T>
     void store_1d(uint pos, T value)
     {
-        RWTexture1D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        RWTexture1D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
+        texture[pos] = value;
+    }
+
+    template<typename T>
+    void store_1d_array(uint2 pos, T value)
+    {
+        RWTexture1DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
         texture[pos] = value;
     }
 
     template<typename T>
     void store_2d(uint2 pos, T value)
     {
-        RWTexture2D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        RWTexture2D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
+        texture[pos] = value;
+    }
+
+    template<typename T>
+    void store_2d_array(uint3 pos, T value)
+    {
+        RWTexture2DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
         texture[pos] = value;
     }
 
     template<typename T>
     void store_3d(uint3 pos, T value)
     {
-        RWTexture3D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        RWTexture3D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.write_index())];
         texture[pos] = value;
     }
 
