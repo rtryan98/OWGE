@@ -2,6 +2,8 @@ target_sources(
     owge_render_engine PRIVATE
     bindless.cpp
     bindless.hpp
+    camera.cpp
+    camera.hpp
     command_allocator.cpp
     command_allocator.hpp
     command_list.cpp
