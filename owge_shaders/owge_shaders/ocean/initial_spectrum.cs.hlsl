@@ -66,6 +66,6 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         final_spectrum = float2(0.0, 0.0);
     }
 
-    bnd.spectrum_tex.store_2d(id.xy, float4(final_spectrum, k));
-    bnd.angular_frequency_tex.store_2d(id.xy, omega);
+    bnd.spectrum_tex.store_2d_array(id.xyz, float4(final_spectrum, k));
+    bnd.angular_frequency_tex.store_2d_array(id.xyz, omega);
 }

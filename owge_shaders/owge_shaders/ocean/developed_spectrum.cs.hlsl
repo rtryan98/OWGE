@@ -24,11 +24,12 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 {
     Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_offset);
 
-    float4 spectrum_wavenumber = bnd.spectrum_tex.load_2d<float4>(id.xy);
+    float4 spectrum_wavenumber = bnd.spectrum_tex.load_2d_array<float4>(id.xyz);
     float2 spectrum = spectrum_wavenumber.xy;
     float2 wavenumber = spectrum_wavenumber.zw;
     float mag = max(0.0001, length(wavenumber));
-    float2 spectrum_minus_k = complex_conjugate((bnd.spectrum_tex.load_2d<float2>(uint2(bnd.size, bnd.size) - id.xy) % bnd.size));
+    uint2 conjugate_pos = (uint2(bnd.size, bnd.size) - id.xy) % bnd.size;
+    float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float2>(uint3(conjugate_pos, id.z)));
     float omega_k = bnd.angular_frequency_tex.load_2d<float>(id.xy);
 
     float phi = bnd.time * omega_k;
@@ -58,5 +59,5 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 
     uint2 shifted_pos = (id.xy + uint2(bnd.size, bnd.size) / 2) % bnd.size;
 
-    bnd.developed_spectrum_tex.store_2d<float2>(shifted_pos, packed_spectrum_x_y);
+    bnd.developed_spectrum_tex.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_x_y);
 }

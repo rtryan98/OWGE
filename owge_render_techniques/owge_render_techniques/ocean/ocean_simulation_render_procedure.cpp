@@ -91,7 +91,7 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -109,7 +109,7 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -133,7 +133,7 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -151,7 +151,7 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -188,7 +188,7 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -221,7 +221,7 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -279,7 +279,7 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },
@@ -302,7 +302,7 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
             .IndexOrFirstMipLevel = 0,
             .NumMipLevels = 1,
             .FirstArraySlice = 0,
-            .NumArraySlices = 1,
+            .NumArraySlices = m_settings->cascade_count,
             .FirstPlane = 0,
             .NumPlanes = 1
         },

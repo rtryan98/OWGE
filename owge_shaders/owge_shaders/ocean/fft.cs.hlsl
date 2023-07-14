@@ -52,7 +52,7 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     uint2 texpos = bool(pc.vertical)
         ? id.xy
         : id.yx;
-    ping_pong_buffer[ping_pong][reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)] = pc.input_output.load_2d<float2>(texpos);
+    ping_pong_buffer[ping_pong][reversebits(id.x) >> (32 - OWGE_FFT_LOG_SIZE)] = pc.input_output.load_2d_array<float2>(uint3(texpos, id.z));
     GroupMemoryBarrierWithGroupSync();
 
     [unroll(OWGE_FFT_LOG_SIZE)] for (uint i = 0; i < OWGE_FFT_LOG_SIZE; i++)
@@ -66,5 +66,5 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         ping_pong = !ping_pong;
     }
 
-    pc.input_output.store_2d(texpos, ping_pong_buffer[ping_pong][id.x]);
+    pc.input_output.store_2d_array(uint3(texpos, id.z), ping_pong_buffer[ping_pong][id.x]);
 }
