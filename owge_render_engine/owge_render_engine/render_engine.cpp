@@ -488,7 +488,10 @@ Texture_Handle Render_Engine::create_texture(const Texture_Desc& desc, const wch
             break;
         case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
             uav_desc.Texture2DArray = {
-                .MipSlice = 0
+                .MipSlice = 0,
+                .FirstArraySlice = 0,
+                .ArraySize = desc.depth_or_array_layers,
+                .PlaneSlice = 0
             };
             break;
         case D3D12_UAV_DIMENSION_TEXTURE2DMS:
