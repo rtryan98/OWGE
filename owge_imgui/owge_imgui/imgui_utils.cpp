@@ -99,9 +99,9 @@ void imgui_set_theme()
     IM_DELETE(imgui_io.Fonts);
     imgui_io.Fonts = IM_NEW(ImFontAtlas);
     ImFontConfig font_cfg = {};
-    font_cfg.OversampleH = 4;
-    font_cfg.OversampleV = 4;
-    font_cfg.PixelSnapH = false;
+    font_cfg.OversampleH = 3;
+    font_cfg.OversampleV = 1;
+    font_cfg.PixelSnapH = true;
     imgui_io.Fonts->AddFontFromFileTTF(
         "res/font/roboto_mono/static/RobotoMono-Regular.ttf",
         14.0f,
