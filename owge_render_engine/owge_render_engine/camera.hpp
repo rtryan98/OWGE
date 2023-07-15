@@ -1,5 +1,6 @@
 #pragma once
 
+#include <owge_window/input_codes.hpp>
 #include <DirectXMath.h>
 
 namespace owge
@@ -7,8 +8,6 @@ namespace owge
 using namespace DirectX;
 
 class Input;
-enum class Key_Code : uint8_t;
-enum class Mouse_Button : uint8_t;
 
 struct Camera_Data
 {
@@ -19,13 +18,14 @@ struct Camera_Data
 
 struct Fly_Camera_Input_Mapping
 {
-    Key_Code forward;
-    Key_Code backward;
-    Key_Code left;
-    Key_Code right;
-    Key_Code high_speed;
-    Key_Code up;
-    Key_Code down;
+    Key_Code forward = Key_Code::Key_W;
+    Key_Code backward = Key_Code::Key_S;
+    Key_Code left = Key_Code::Key_A;
+    Key_Code right = Key_Code::Key_D;
+    Key_Code high_speed = Key_Code::Key_Left_Shift;
+    Key_Code up = Key_Code::Key_Q;
+    Key_Code down = Key_Code::Key_E;
+    Mouse_Button enable_rotate = Mouse_Button::Mouse_Left;
 };
 
 struct Simple_Fly_Camera
