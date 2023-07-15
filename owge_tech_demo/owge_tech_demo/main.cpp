@@ -14,6 +14,8 @@
 
 int32_t main()
 {
+    SetProcessDPIAware();
+
     owge::Window_Settings window_settings = {
         .width = 1920,
         .height = 1080,
