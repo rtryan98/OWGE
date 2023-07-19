@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdint>
+#include <owge_render_engine/camera.hpp>
 #include <owge_d3d12_base/d3d12_util.hpp>
 #include <owge_render_engine/render_engine.hpp>
 #include <owge_render_engine/render_procedure/swapchain_pass.hpp>
@@ -8,9 +9,14 @@
 #include <owge_imgui/imgui_render_procedure.hpp>
 #include <owge_render_techniques/render_technique_settings.hpp>
 
+#include <owge_window/input.hpp>
+
 #include <owge_render_techniques/ocean/ocean_settings.hpp>
 #include <owge_render_techniques/ocean/ocean_simulation_render_procedure.hpp>
 #include <owge_render_techniques/ocean/ocean_render_resources.hpp>
+
+#undef near // Really windows?
+#undef far
 
 int32_t main()
 {
@@ -24,6 +30,7 @@ int32_t main()
     };
     auto window = std::make_unique<owge::Window>(
         window_settings);
+    auto input = std::make_unique<owge::Input>(window->get_hwnd());
     owge::D3D12_Context_Settings d3d12_settings = {
         .enable_validation = true,
         .enable_gpu_based_validation = false,
@@ -46,6 +53,14 @@ int32_t main()
     auto swapchain_pass = std::make_unique<owge::Swapchain_Pass_Render_Procedure>(
         swapchain_pass_settings);
 
+    auto camera = owge::Simple_Fly_Camera{
+        .fov_y = 60.0f,
+        .near = 0.01f,
+        .far = 1000.0f,
+        .sensitivity = 0.2f,
+        .movement_speed = 1.0f
+    };
+
     auto ocean_resources = owge::Ocean_Simulation_Render_Resources{};
     auto ocean_render_technique_settings = owge::Ocean_Render_Technique_Settings(render_engine.get(), &ocean_resources);
     ocean_resources.create(render_engine.get(), &ocean_render_technique_settings.settings);
@@ -67,9 +82,12 @@ int32_t main()
     while (window->get_data().alive)
     {
         window->poll_events();
+        input->update_input_state();
         owge::imgui_new_frame();
 
         float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
+        camera.aspect = float(window->get_data().height) / float(window->get_data().height);
+        camera.update(input.get(), delta_time, true);
 
         ImGui::ShowDemoWindow();
 
