@@ -30,17 +30,30 @@ struct Fly_Camera_Input_Mapping
 
 struct Simple_Fly_Camera
 {
+    constexpr static XMFLOAT3 WORLD_UP = { 0.0f, 0.0f, 1.0f };
+
     Camera_Data camera_data;
     Fly_Camera_Input_Mapping input_map;
 
+    float fov_y;
+    float aspect;
+    float near;
+    float far;
+
     float sensitivity;
+    float movement_speed;
     float pitch;
     float yaw;
-    float movement_speed;
 
-    void update(Input* input, bool active);
+    XMFLOAT3 position;
+    XMFLOAT3 forward;
+    XMFLOAT3 right;
+    XMFLOAT3 up;
+
+    void update(Input* input, float dt, bool active);
 
 private:
-    void update_matrices();
+    void update_rotation(Input* input);
+    void update_position(Input* input, float dt);
 };
 }
