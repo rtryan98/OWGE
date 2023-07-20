@@ -27,6 +27,8 @@ struct D3D12_Context
     ID3D12CommandQueue* copy_queue;
     ID3D12DescriptorHeap* cbv_srv_uav_descriptor_heap;
     ID3D12DescriptorHeap* sampler_descriptor_heap;
+    ID3D12DescriptorHeap* rtv_descriptor_heap;
+    ID3D12DescriptorHeap* dsv_descriptor_heap;
     ID3D12RootSignature* global_rootsig;
 };
 

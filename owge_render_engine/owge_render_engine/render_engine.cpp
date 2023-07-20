@@ -46,24 +46,15 @@ Render_Engine::Render_Engine(HWND hwnd,
     m_swapchain = std::make_unique<D3D12_Swapchain>(
         m_ctx.factory, m_ctx.device, m_ctx.direct_queue,
         hwnd, MAX_SWAPCHAIN_BUFFERS);
-    D3D12_DESCRIPTOR_HEAP_DESC rtv_dsv_descriptor_heap_desc = {
-        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-        .NumDescriptors = MAX_RTV_DSV_DESCRIPTORS,
-        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-        .NodeMask = 0
-    };
-    m_ctx.device->CreateDescriptorHeap(&rtv_dsv_descriptor_heap_desc, IID_PPV_ARGS(&m_rtv_descriptor_heap));
-    rtv_dsv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    m_ctx.device->CreateDescriptorHeap(&rtv_dsv_descriptor_heap_desc, IID_PPV_ARGS(&m_dsv_descriptor_heap));
 
     m_cbv_srv_uav_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
         m_ctx.cbv_srv_uav_descriptor_heap, m_ctx.device);
     m_sampler_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
         m_ctx.sampler_descriptor_heap, m_ctx.device);
     m_rtv_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
-        m_rtv_descriptor_heap.Get(), m_ctx.device);
+        m_ctx.rtv_descriptor_heap, m_ctx.device);
     m_dsv_descriptor_allocator = std::make_unique<Descriptor_Allocator>(
-        m_dsv_descriptor_heap.Get(), m_ctx.device);
+        m_ctx.dsv_descriptor_heap, m_ctx.device);
 
     for (auto i = 0; i < MAX_CONCURRENT_GPU_FRAMES; ++i)
     {
@@ -146,8 +137,6 @@ Render_Engine::~Render_Engine()
 #endif
 
     m_bindset_allocator = nullptr;
-    m_rtv_descriptor_heap = nullptr;
-    m_dsv_descriptor_heap = nullptr;
     m_frame_contexts = {};
     m_bindset_stager = nullptr;
     m_swapchain = nullptr;
@@ -849,13 +838,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE Render_Engine::get_cpu_descriptor_from_texture(Textu
     if (texture.rtv != NO_RTV_DSV)
     {
         auto increment = m_ctx.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        auto start = m_rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+        auto start = m_ctx.rtv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
         result.ptr = start.ptr + texture.rtv * increment;
     }
     else if (texture.dsv != NO_RTV_DSV)
     {
         auto increment = m_ctx.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-        auto start = m_dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+        auto start = m_ctx.dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
         result.ptr = start.ptr + texture.dsv * increment;
     }
     return result;

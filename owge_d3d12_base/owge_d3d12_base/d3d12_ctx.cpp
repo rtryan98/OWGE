@@ -79,6 +79,14 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
     descriptor_heap_desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
     throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.sampler_descriptor_heap)),
         "Error creating Sampler Descriptor Heap.");
+    descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    descriptor_heap_desc.NumDescriptors = MAX_RTV_DSV_DESCRIPTORS;
+    descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.rtv_descriptor_heap)),
+        "Error creating RTV Descriptor Heap.");
+    descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.dsv_descriptor_heap)),
+        "Error creating DSV Descriptor Heap.");
 
     D3D12_ROOT_PARAMETER1 global_rootsig_param = {
         .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
@@ -117,6 +125,8 @@ void destroy_d3d12_context(D3D12_Context* ctx)
     d3d12_context_wait_idle(ctx);
 
     ctx->global_rootsig->Release();
+    ctx->dsv_descriptor_heap->Release();
+    ctx->rtv_descriptor_heap->Release();
     ctx->sampler_descriptor_heap->Release();
     ctx->cbv_srv_uav_descriptor_heap->Release();
     ctx->copy_queue->Release();

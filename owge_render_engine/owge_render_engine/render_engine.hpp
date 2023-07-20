@@ -97,9 +97,7 @@ private:
 
     std::unique_ptr<Descriptor_Allocator> m_cbv_srv_uav_descriptor_allocator;
     std::unique_ptr<Descriptor_Allocator> m_sampler_descriptor_allocator;
-    Com_Ptr<ID3D12DescriptorHeap> m_rtv_descriptor_heap;
     std::unique_ptr<Descriptor_Allocator> m_rtv_descriptor_allocator;
-    Com_Ptr<ID3D12DescriptorHeap> m_dsv_descriptor_heap;
     std::unique_ptr<Descriptor_Allocator> m_dsv_descriptor_allocator;
 
     std::unique_ptr<D3D12_Swapchain> m_swapchain;
