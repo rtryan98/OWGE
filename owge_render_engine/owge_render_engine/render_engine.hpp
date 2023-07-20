@@ -2,6 +2,7 @@
 
 #include "owge_render_engine/render_procedure/render_procedure.hpp"
 #include "owge_render_engine/resource_allocator.hpp"
+#include "owge_render_engine/resource_manager.hpp"
 #include "owge_render_engine/command_allocator.hpp"
 #include "owge_render_engine/bindless.hpp"
 #include "owge_render_engine/staging_buffer_allocator.hpp"
@@ -94,19 +95,10 @@ private:
 
     Com_Ptr<IDxcUtils> m_dxc_utils;
 
-    std::unique_ptr<Descriptor_Allocator> m_cbv_srv_uav_descriptor_allocator;
-    std::unique_ptr<Descriptor_Allocator> m_sampler_descriptor_allocator;
-    std::unique_ptr<Descriptor_Allocator> m_rtv_descriptor_allocator;
-    std::unique_ptr<Descriptor_Allocator> m_dsv_descriptor_allocator;
+    std::unique_ptr<Resource_Manager> m_resource_manager;
 
     std::unique_ptr<D3D12_Swapchain> m_swapchain;
     std::vector<Render_Procedure*> m_procedures;
-
-    Resource_Allocator<Buffer> m_buffers;
-    Resource_Allocator<Texture> m_textures;
-    Resource_Allocator<Pipeline> m_pipelines;
-    Resource_Allocator<Shader> m_shaders;
-    Resource_Allocator<Sampler> m_samplers;
 
     uint64_t m_current_frame = 0;
     uint32_t m_current_frame_index = 0;
@@ -121,11 +113,6 @@ private:
         T resource;
         uint64_t frame;
     };
-    std::vector<Deletion_Queue_Resource<Buffer_Handle>> m_buffer_deletion_queue;
-    std::vector<Deletion_Queue_Resource<Texture_Handle>> m_texture_deletion_queue;
-    std::vector<Deletion_Queue_Resource<Pipeline_Handle>> m_pipeline_deletion_queue;
-    std::vector<Deletion_Queue_Resource<Sampler_Handle>> m_sampler_deletion_queue;
     std::vector<Deletion_Queue_Resource<Bindset>> m_bindset_deletion_queue;
-    std::vector<Deletion_Queue_Resource<ID3D12Resource*>> m_deferred_resource_deletion_queue;
 };
 }

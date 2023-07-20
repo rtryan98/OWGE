@@ -12,6 +12,8 @@ target_sources(
     render_engine.hpp
     resource.hpp
     resource_allocator.hpp
+    resource_manager.cpp
+    resource_manager.hpp
     staging_buffer_allocator.cpp
     staging_buffer_allocator.hpp
 )
