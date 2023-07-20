@@ -23,13 +23,6 @@
 
 namespace owge
 {
-static constexpr uint32_t MAX_BUFFERS = 1048576;
-static constexpr uint32_t MAX_TEXTURES = 1048576;
-static constexpr uint32_t MAX_PIPELINES = 262144;
-static constexpr uint32_t MAX_SHADERS = 524288;
-
-static constexpr uint32_t NO_SRV = 0x1FFFFF;
-static constexpr uint32_t NO_UAV = 0x1FFFFF;
 static constexpr uint32_t NO_RTV_DSV = 0x1FFFFF;
 
 Render_Engine::Render_Engine(HWND hwnd,
