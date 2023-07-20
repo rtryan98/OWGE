@@ -251,7 +251,7 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
 
         ImGui::SeparatorText("Presets");
         ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
-        if (ImGui::BeginCombo("Presets##Ocean_Simulation",
+        if (ImGui::BeginCombo("Complete Presets##Ocean_Simulation",
             m_last_selected_preset != -1
             ? presets[m_last_selected_preset].name
             : "No preset selected"))
