@@ -53,5 +53,8 @@ struct Ocean_Simulation_Render_Resources
 
     Bindset initial_spectrum_bindset;
     Bindset developed_spectrum_bindset;
+
+    Texture_Handle displacement_x_y_z_texture;
+    Texture_Handle normals_x_y_z_texture;
 };
 }
