@@ -247,6 +247,8 @@ option(OWGE_USE_NVPERF "Use NVIDIA Nsight Perf SDK" OFF)
 option(OWGE_USE_WIN_PIX_EVENT_RUNTIME "Use WinPixEventRuntime" ON)
 
 # Project.
+add_owge_lib(owge_common)
+
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
@@ -268,6 +270,7 @@ target_include_directories(
 )
 target_link_libraries(
     owge_render_engine PUBLIC
+    owge_common
     owge_d3d12_base
     owge_window
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/direct_storage_1.2.0/native/lib/x64/dstorage.lib
