@@ -85,7 +85,6 @@ public:
     }
 
 private:
-    [[nodiscard]] std::vector<uint8_t> read_shader_from_file(const std::string& path);
     void empty_deletion_queues(uint64_t frame);
 
 private:

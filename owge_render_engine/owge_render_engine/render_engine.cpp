@@ -8,6 +8,8 @@
 
 #include "owge_render_engine/command_list.hpp"
 
+#include <owge_common/file_util.hpp>
+
 #if OWGE_USE_NVPERF
 #pragma warning(push, 3) // NvPerf sample code does not compile under W4
 #include <nvperf_host_impl.h>
@@ -625,7 +627,7 @@ Shader_Handle Render_Engine::create_shader(const Shader_Desc& desc)
 {
     auto emplaced_handle = m_shaders.emplace(0, 0);
     emplaced_handle.value.path = desc.path;
-    emplaced_handle.value.bytecode = read_shader_from_file(desc.path);
+    emplaced_handle.value.bytecode = read_file_as_binary(desc.path.c_str());
     return emplaced_handle.handle;
 }
 
@@ -847,24 +849,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE Render_Engine::get_cpu_descriptor_from_texture(Textu
         auto start = m_ctx.dsv_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
         result.ptr = start.ptr + texture.dsv * increment;
     }
-    return result;
-}
-
-std::vector<uint8_t> Render_Engine::read_shader_from_file(const std::string& path)
-{
-    std::vector<uint8_t> result;
-    std::ifstream file(path, std::ios::binary);
-    file.unsetf(std::ios::skipws);
-    std::streampos file_size;
-    file.seekg(0, std::ios::end);
-    file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
-    result.reserve(file_size);
-    result.insert(
-        result.begin(),
-        std::istream_iterator<uint8_t>(file),
-        std::istream_iterator<uint8_t>());
-    file.close();
     return result;
 }
 
