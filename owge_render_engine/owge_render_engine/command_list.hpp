@@ -84,8 +84,8 @@ public:
         uint32_t instance_count, uint32_t instance_offset);
     void draw_indexed(uint32_t index_count, uint32_t index_offset,
         uint32_t instance_count, uint32_t instance_offset, uint32_t base_vertex);
-    void set_bindset_compute(const Bindset& bindset);
-    void set_bindset_graphics(const Bindset& bindset);
+    void set_bindset_compute(const Bindset& bindset, uint32_t first_element = 0);
+    void set_bindset_graphics(const Bindset& bindset, uint32_t first_element = 0);
     void set_constants_compute(uint32_t count, void* constants, uint32_t first_constant);
     void set_constants_graphics(uint32_t count, void* constants, uint32_t first_constant);
     void set_pipeline_state(Pipeline_Handle handle);

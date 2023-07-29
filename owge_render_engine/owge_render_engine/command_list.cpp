@@ -167,16 +167,16 @@ void Command_List::draw_indexed(uint32_t index_count, uint32_t index_offset,
     m_cmd->DrawIndexedInstanced(index_count, instance_count, index_offset, base_vertex, instance_offset);
 }
 
-void Command_List::set_bindset_compute(const Bindset& bindset)
+void Command_List::set_bindset_compute(const Bindset& bindset, uint32_t first_element)
 {
     auto& alloc = bindset.allocation;
-    m_cmd->SetComputeRoot32BitConstants(0, 2, &alloc, 0);
+    m_cmd->SetComputeRoot32BitConstants(0, 2, &alloc, first_element);
 }
 
-void Command_List::set_bindset_graphics(const Bindset& bindset)
+void Command_List::set_bindset_graphics(const Bindset& bindset, uint32_t first_element)
 {
     auto& alloc = bindset.allocation;
-    m_cmd->SetGraphicsRoot32BitConstants(0, 2, &alloc, 0);
+    m_cmd->SetGraphicsRoot32BitConstants(0, 2, &alloc, first_element);
 }
 
 void Command_List::set_constants_compute(uint32_t count, void* constants, uint32_t first_constant)
