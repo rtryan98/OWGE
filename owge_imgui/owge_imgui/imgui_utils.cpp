@@ -8,6 +8,13 @@
 
 namespace owge
 {
+MONITORINFO get_monitor_info(HWND hwnd)
+{
+    MONITORINFO result = {};
+    GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &result);
+    return result;
+}
+
 // https://github.com/ocornut/imgui/issues/707
 // https://github.com/janekb04
 void imgui_set_theme()
