@@ -108,6 +108,7 @@ struct Graphics_Pipeline_Desc
     D3D12_BLEND_DESC blend_state;
     D3D12_RASTERIZER_DESC rasterizer_state;
     D3D12_DEPTH_STENCIL_DESC depth_stencil_state;
+    uint32_t rtv_count;
     DXGI_FORMAT rtv_formats[8];
     DXGI_FORMAT dsv_format;
 };

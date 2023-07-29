@@ -435,8 +435,8 @@ Pipeline_Handle Resource_Manager::create_pipeline(const Graphics_Pipeline_Desc& 
         .InputLayout = {},
         .IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
         .PrimitiveTopologyType = desc.primitive_topology_type,
-        .NumRenderTargets = 0,
-        .RTVFormats = {},
+        .NumRenderTargets = desc.rtv_count,
+        .RTVFormats = {}, // memcpy
         .DSVFormat = desc.dsv_format,
         .SampleDesc = {.Count = 1, .Quality = 0 },
         .NodeMask = 0,
