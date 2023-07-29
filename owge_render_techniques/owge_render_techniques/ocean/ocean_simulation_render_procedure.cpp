@@ -29,13 +29,6 @@ float oceanography_calculate_v_yu_karaev_spectrum_omega_m(float fetch)
     return float(result);
 }
 
-struct Ocean_Initial_Spectrum_Shader_Bindset
-{
-    uint32_t ocean_params_buf_idx;
-    uint32_t initial_spectrum_tex_idx;
-    uint32_t angular_frequency_tex_idx;
-};
-
 void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
     const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
 {
@@ -161,15 +154,6 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
     payload.cmd->end_event();
 }
 
-struct Ocean_Developed_Spectrum_Shader_Bindset
-{
-    uint32_t initial_spectrum_tex_idx;
-    uint32_t angular_frequency_tex_idx;
-    uint32_t developed_spectrum_tex_idx;
-    float time;
-    uint32_t size;
-};
-
 void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
     const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
 {
@@ -232,13 +216,6 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
     payload.cmd->end_event();
 }
 
-struct FFT_Constants
-{
-    uint32_t texture;
-    uint32_t vertical;
-    uint32_t inverse;
-};
-
 void Ocean_Simulation_Render_Procedure::process_ffts(
     const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
 {
@@ -260,12 +237,12 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
         std::unreachable();
         break;
     }
-    FFT_Constants fft_constants = {
+    Ocean_FFT_Constants fft_constants = {
         .texture = uint32_t(m_resources->developed_spectrum_texture.bindless_idx),
         .vertical = false,
         .inverse = true
     };
-    payload.cmd->set_constants_compute(sizeof(FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
+    payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
     payload.cmd->dispatch(1, size, 1);
     barrier_builder.push({
         .texture = m_resources->developed_spectrum_texture,
@@ -288,7 +265,7 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
     barrier_builder.flush();
 
     fft_constants.vertical = true;
-    payload.cmd->set_constants_compute(sizeof(FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
+    payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
     payload.cmd->dispatch(1, size, 1);
     barrier_builder.push({
         .texture = m_resources->developed_spectrum_texture,
