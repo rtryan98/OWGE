@@ -304,6 +304,7 @@ target_link_libraries(
     owge_render_techniques PUBLIC
     owge_render_engine
     owge_imgui
+    owge_asset
 )
 
 add_owge_exe(owge_tech_demo)
