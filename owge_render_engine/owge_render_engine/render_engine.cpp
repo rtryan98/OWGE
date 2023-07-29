@@ -1,7 +1,6 @@
 #include "owge_render_engine/render_engine.hpp"
 
 #include <algorithm>
-#include <d3d12shader.h>
 #include <utility>
 #include <fstream>
 #include <ranges>
@@ -52,8 +51,6 @@ Render_Engine::Render_Engine(HWND hwnd,
 
     m_bindset_allocator = std::make_unique<Bindset_Allocator>(this);
     m_bindset_stager = std::make_unique<Bindset_Stager>();
-
-    DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_dxc_utils));
 
     if (render_engine_settings.nvperf_enabled)
     {
@@ -140,18 +137,18 @@ void Render_Engine::render(float delta_time)
     {
         // TODO: wait error. Warn about possible desync?
     }
+
     frame_ctx.direct_queue_cmd_alloc->reset();
     frame_ctx.staging_buffer_allocator->reset();
     empty_deletion_queues(m_current_frame);
+    auto procedure_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate().cmd;
+    frame_ctx.upload_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate().cmd;
 
     if (m_swapchain->try_resize())
     {
         // TODO: client window area dependent resources
     }
     m_swapchain->acquire_next_image();
-
-    auto procedure_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate().cmd;
-    frame_ctx.upload_cmd = frame_ctx.direct_queue_cmd_alloc->get_or_allocate().cmd;
 
     auto procedure_cmd_list = Command_List(this, procedure_cmd);
     auto procedure_cmd_global_barrier_builder = procedure_cmd_list.acquire_barrier_builder();
@@ -178,6 +175,18 @@ void Render_Engine::render(float delta_time)
     }
 
     m_bindset_stager->process(procedure_cmd);
+
+    for (const auto& staged_upload : m_staged_uploads)
+    {
+        frame_ctx.upload_cmd->CopyBufferRegion(
+            staged_upload.dst,
+            staged_upload.dst_offset,
+            staged_upload.src,
+            staged_upload.src_offset,
+            staged_upload.size);
+    }
+    m_staged_uploads.clear();
+
     D3D12_GLOBAL_BARRIER global_upload_barrier = {
         .SyncBefore = D3D12_BARRIER_SYNC_COPY,
         .SyncAfter = D3D12_BARRIER_SYNC_ALL,
@@ -217,8 +226,31 @@ void* Render_Engine::upload_data(uint64_t size, uint64_t align, Buffer_Handle ds
     auto& frame_ctx = m_frame_contexts[m_current_frame_index];
     auto allocation = frame_ctx.staging_buffer_allocator->allocate(size, align);
     auto& buffer = get_buffer(dst);
-    frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
+    m_staged_uploads.push_back({
+        .src = allocation.resource,
+        .src_offset = allocation.offset,
+        .dst = buffer.resource,
+        .dst_offset = dst_offset,
+        .size = size
+        });
+    // frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
     return &static_cast<uint8_t*>(allocation.data)[allocation.offset];
+}
+
+void Render_Engine::copy_and_upload_data(uint64_t size, uint64_t align, Buffer_Handle dst, uint64_t dst_offset, void* data)
+{
+    auto& frame_ctx = m_frame_contexts[m_current_frame_index];
+    auto allocation = frame_ctx.staging_buffer_allocator->allocate(size, align);
+    memcpy(&static_cast<char*>(allocation.data)[allocation.offset], data, size);
+    auto& buffer = get_buffer(dst);
+    m_staged_uploads.push_back({
+        .src = allocation.resource,
+        .src_offset = allocation.offset,
+        .dst = buffer.resource,
+        .dst_offset = dst_offset,
+        .size = size
+        });
+    // frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
 }
 
 void Render_Engine::update_bindings(const Bindset& bindset)

@@ -11,7 +11,6 @@
 #include <owge_d3d12_base/d3d12_util.hpp>
 #include <owge_d3d12_base/d3d12_swapchain.hpp>
 
-#include <dxcapi.h>
 #include <memory>
 #include <vector>
 
@@ -35,6 +34,15 @@ struct Render_Engine_Frame_Context
     std::unique_ptr<Staging_Buffer_Allocator> staging_buffer_allocator;
 };
 
+struct Staged_Upload
+{
+    ID3D12Resource* src;
+    uint64_t src_offset;
+    ID3D12Resource* dst;
+    uint64_t dst_offset;
+    uint64_t size;
+};
+
 class Render_Engine
 {
 public:
@@ -52,6 +60,7 @@ public:
     void render(float delta_time);
 
     [[nodiscard]] void* upload_data(uint64_t size, uint64_t align, Buffer_Handle dst, uint64_t dst_offset);
+    void copy_and_upload_data(uint64_t size, uint64_t align, Buffer_Handle dst, uint64_t dst_offset, void* data);
     void update_bindings(const Bindset& bindset);
 
     [[nodiscard]] Buffer_Handle create_buffer(const Buffer_Desc& desc, const wchar_t* name = nullptr);
@@ -93,8 +102,6 @@ private:
     Render_Engine_Settings m_settings;
     bool m_nvperf_active;
 
-    Com_Ptr<IDxcUtils> m_dxc_utils;
-
     std::unique_ptr<Resource_Manager> m_resource_manager;
 
     std::unique_ptr<D3D12_Swapchain> m_swapchain;
@@ -106,6 +113,8 @@ private:
 
     std::unique_ptr<Bindset_Allocator> m_bindset_allocator;
     std::unique_ptr<Bindset_Stager> m_bindset_stager;
+
+    std::vector<Staged_Upload> m_staged_uploads;
 
     template<typename T>
     struct Deletion_Queue_Resource
