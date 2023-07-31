@@ -2,12 +2,21 @@
 
 namespace owge
 {
-Generated_Simple_Mesh<XMFLOAT2> mesh_generate_simple_plane_2d(uint32_t width, uint32_t length)
+Generated_Simple_Mesh<XMFLOAT2> mesh_generate_simple_plane_2d(uint32_t size)
 {
     Generated_Simple_Mesh<XMFLOAT2> result;
 
-    result.vertex_positions.reserve(width * length);
-    result.indices.reserve(((width - 1) * (length -1)) * 6);
+    result.vertex_positions.reserve(size * size);
+    result.indices.reserve(((size - 1) * (size -1)) * 6);
+
+    for (uint32_t i = 0; i < size; ++i)
+    {
+        for (uint32_t j = 0; j < size; ++j)
+        {
+            auto& pos = result.vertex_positions.emplace_back();
+            pos = { float(j), float(i) };
+        }
+    }
 
     auto push_triangle_indices = [&](uint32_t a, uint32_t b, uint32_t c) mutable {
         result.indices.push_back(a);
@@ -15,18 +24,20 @@ Generated_Simple_Mesh<XMFLOAT2> mesh_generate_simple_plane_2d(uint32_t width, ui
         result.indices.push_back(c);
     };
 
-    for (uint32_t i = 0; i < width; ++i)
+    for (uint32_t i = 0; i < size - 1; ++i)
     {
-        for (uint32_t j = 0; j < length; ++j)
+        for (uint32_t j = 0; j < size - 1; ++j)
         {
-            auto& pos = result.vertex_positions.emplace_back();
-            pos = { float(i), float(j) };
-
-            if (i < width - 1 && j < length - 1)
-            {
-                push_triangle_indices(j, j+1, j+1+i*width);
-                push_triangle_indices(j, j+1+i*width, j+i*width);
-            }
+            auto diff = size;
+            auto idx = i * diff + j;
+            push_triangle_indices(
+                idx,
+                idx + 1,
+                idx + 1 + diff);
+            push_triangle_indices(
+                idx,
+                idx + 1 + diff,
+                idx + diff);
         }
     }
 

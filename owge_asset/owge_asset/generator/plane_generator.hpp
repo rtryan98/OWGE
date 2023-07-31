@@ -4,5 +4,5 @@
 
 namespace owge
 {
-Generated_Simple_Mesh<XMFLOAT2> mesh_generate_simple_plane_2d(uint32_t width, uint32_t length);
+Generated_Simple_Mesh<XMFLOAT2> mesh_generate_simple_plane_2d(uint32_t size);
 }
