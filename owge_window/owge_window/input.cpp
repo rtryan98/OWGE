@@ -14,9 +14,12 @@ void Input::update_input_state()
 {
     m_last_state = m_current_state;
     GetKeyboardState(m_current_state.data());
+
+    m_last_mouse_pos = m_current_mouse_pos;
     POINT cursor_pos;
     GetCursorPos(&cursor_pos);
     ScreenToClient(m_hwnd, &cursor_pos);
+    m_current_mouse_pos = { float(cursor_pos.x), float(cursor_pos.y) };
 }
 
 uint8_t high_bit(uint8_t x)
