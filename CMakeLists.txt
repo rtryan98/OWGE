@@ -252,7 +252,7 @@ add_owge_lib(owge_common)
 add_owge_lib(owge_d3d12_base)
 target_include_directories(
     owge_d3d12_base PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.4/build/native
 )
 target_link_libraries(
     owge_d3d12_base PUBLIC
@@ -263,7 +263,7 @@ target_link_libraries(
 add_owge_lib(owge_asset)
 target_include_directories(
     owge_d3d12_base PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.2/build/native
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12_agility_1.610.4/build/native
 )
 target_link_libraries(
     owge_d3d12_base PUBLIC
