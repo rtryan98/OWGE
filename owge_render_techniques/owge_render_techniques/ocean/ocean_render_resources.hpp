@@ -51,11 +51,6 @@ struct Ocean_FFT_Constants
     uint32_t inverse;
 };
 
-struct Ocean_Surface_VS_Render_Data
-{
-    XMFLOAT2 pos;
-};
-
 struct Ocean_Surface_VS_Bindset
 {
     uint32_t vertex_buffer;
@@ -65,6 +60,11 @@ struct Ocean_Surface_VS_Bindset
 struct Ocean_Surface_PS_Bindset
 {
 
+};
+
+struct Ocean_Surface_VS_Render_Data
+{
+    XMFLOAT4X4 view_proj;
 };
 
 struct Ocean_Simulation_Render_Resources
@@ -102,7 +102,8 @@ struct Ocean_Simulation_Render_Resources
 
     Buffer_Handle ocean_surface_vertex_buffer;
     Buffer_Handle ocean_surface_index_buffer;
-    Buffer_Handle ocean_surface_vs_render_data;
+    Buffer_Handle ocean_surface_vs_render_data_buffer;
+    uint32_t ocean_surface_index_count;
 
     Shader_Handle surface_plane_vs;
     Shader_Handle surface_plane_ps;
@@ -110,5 +111,18 @@ struct Ocean_Simulation_Render_Resources
 
     Bindset surface_render_vs_bindset;
     Bindset surface_render_ps_bindset;
+
+private:
+    void create_simulation_shaders(Render_Engine* render_engine);
+    void destroy_simulation_shaders(Render_Engine* render_engine);
+
+    void create_simulation_resources(Render_Engine* render_engine, Ocean_Settings* settings);
+    void destroy_simulation_resources(Render_Engine* render_engine);
+
+    void create_surface_shaders(Render_Engine* render_engine);
+    void destroy_surface_shaders(Render_Engine* render_engine);
+
+    void create_surface_resources(Render_Engine* render_engine);
+    void destroy_surface_resources(Render_Engine* render_engine);
 };
 }
