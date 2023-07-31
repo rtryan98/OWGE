@@ -3,6 +3,9 @@
 #include <owge_window/input_codes.hpp>
 #include <DirectXMath.h>
 
+#undef near
+#undef far
+
 namespace owge
 {
 using namespace DirectX;

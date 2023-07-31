@@ -8,14 +8,18 @@ void Simple_Fly_Camera::update(Input* input, float dt, bool active)
 {
     if (!active)
         return;
+
     update_rotation(input);
     update_position(input, dt);
 
-    XMStoreFloat4x4(&this->camera_data.proj, XMMatrixPerspectiveFovRH(fov_y, aspect, near, far));
-    XMStoreFloat4x4(&this->camera_data.view, XMMatrixLookAtLH(
+    XMStoreFloat4x4(&this->camera_data.proj, XMMatrixPerspectiveFovRH(
+        XMConvertToRadians(fov_y), aspect, near, far));
+    XMStoreFloat4x4(&this->camera_data.view, XMMatrixLookAtRH(
         XMLoadFloat3(&this->position),
-        XMVectorAdd(XMLoadFloat3(&this->position),
-        XMLoadFloat3(&this->forward)), XMLoadFloat3(&this->up)));
+        XMVectorAdd(
+            XMLoadFloat3(&this->position),
+            XMLoadFloat3(&this->forward)),
+        XMLoadFloat3(&this->up)));
     XMStoreFloat4x4(&this->camera_data.view_proj, XMMatrixMultiply(
         XMLoadFloat4x4(&this->camera_data.view), XMLoadFloat4x4(&this->camera_data.proj)));
 }
@@ -25,14 +29,22 @@ void Simple_Fly_Camera::update_rotation(Input* input)
     if (input->is_mouse_pressed(input_map.enable_rotate))
     {
         auto mouse_delta = input->get_mouse_pos_delta();
-        yaw += sensitivity * mouse_delta.x;
-        pitch += sensitivity * mouse_delta.y;
+        yaw -= sensitivity * mouse_delta.x;
+        if (yaw > 360.0f)
+        {
+            yaw -= 360.0f;
+        }
+        if (yaw < 0.0f)
+        {
+            yaw += 360.0f;
+        }
+        pitch -= sensitivity * mouse_delta.y;
         pitch = XMMax(XMMin(pitch, 89.0f), -89.0f);
     }
     forward = {
         XMScalarCos(XMConvertToRadians(yaw)) * XMScalarCos(XMConvertToRadians(pitch)),
+        XMScalarSin(XMConvertToRadians(yaw)) * XMScalarCos(XMConvertToRadians(pitch)),
         XMScalarSin(XMConvertToRadians(pitch)),
-        XMScalarSin(XMConvertToRadians(yaw)) * XMScalarCos(XMConvertToRadians(pitch))
     };
     XMStoreFloat3(&this->forward,
         XMVector3Normalize(XMLoadFloat3(&this->forward)));
@@ -64,12 +76,12 @@ void Simple_Fly_Camera::update_position(Input* input, float dt)
     else if (inp_forward)
     {
         XMStoreFloat3(&movement,
-            XMVectorAdd(XMLoadFloat3(&this->forward),  XMLoadFloat3(&movement)));
+            XMVectorAdd(XMLoadFloat3(&this->forward), XMLoadFloat3(&movement)));
     }
     else if (inp_back)
     {
         XMStoreFloat3(&movement,
-            XMVectorAdd(-1.0f * XMLoadFloat3(&this->forward),XMLoadFloat3(&movement)));
+            XMVectorAdd(-1.0f * XMLoadFloat3(&this->forward), XMLoadFloat3(&movement)));
     }
 
     if (inp_left && inp_right)
