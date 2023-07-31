@@ -3,14 +3,14 @@
 
 struct VS_Out
 {
-    float4 pos : SV_Position;
+    float4 pos : SV_POSITION;
 };
 
 typedef VS_Out PS_In;
 
 struct PS_Out
 {
-    float4 col : SV_Target0;
+    float4 col : SV_TARGET;
 };
 
 struct Push_Constants

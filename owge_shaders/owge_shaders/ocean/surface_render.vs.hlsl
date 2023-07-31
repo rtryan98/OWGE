@@ -3,7 +3,7 @@
 
 struct Render_Data
 {
-    float4x4 viewproj;
+    float4x4 view_proj;
 };
 
 struct Bindset
@@ -24,7 +24,7 @@ VS_Out vs_main(uint vertex_id : SV_VertexID)
     Vertex vert = bnd.vertex_buffer.load<Vertex>(vertex_id);
     Render_Data render_data = bnd.render_data.load<Render_Data>();
 
-    result.pos = mul(float4(vert.pos, 0.0, 1.0), render_data.viewproj);
+    result.pos = mul(float4(vert.pos - float2(64.0, 64.0), 0.0, 1.0), render_data.view_proj);
 
     return result;
 }

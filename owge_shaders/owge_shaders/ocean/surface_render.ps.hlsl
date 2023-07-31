@@ -9,7 +9,7 @@ PS_Out ps_main(PS_In ps_in)
 {
     PS_Out result;
 
-    result.col = float4(1.0, 0.5, 0.5, 1.0);
+    result.col = float4(1.0, 0.0, 0.0, 1.0);
 
     return result;
 }
