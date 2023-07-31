@@ -14,6 +14,7 @@
 #include <owge_render_techniques/ocean/ocean_settings.hpp>
 #include <owge_render_techniques/ocean/ocean_simulation_render_procedure.hpp>
 #include <owge_render_techniques/ocean/ocean_render_resources.hpp>
+#include <owge_render_techniques/ocean/ocean_surface_render_procedure.hpp>
 
 #undef near // Really windows?
 #undef far
@@ -54,11 +55,11 @@ int32_t main()
         swapchain_pass_settings);
 
     auto camera = owge::Simple_Fly_Camera{
-        .fov_y = 60.0f,
+        .fov_y = 90.0f,
         .near = 0.01f,
         .far = 1000.0f,
-        .sensitivity = 0.2f,
-        .movement_speed = 1.0f
+        .sensitivity = 0.25f,
+        .movement_speed = 10.0f
     };
 
     auto ocean_resources = owge::Ocean_Simulation_Render_Resources{};
@@ -67,12 +68,16 @@ int32_t main()
     auto ocean_simulation_render_procedure = std::make_unique<owge::Ocean_Simulation_Render_Procedure>(
         &ocean_render_technique_settings.settings, &ocean_resources
         );
+    auto ocean_surface_render_procedure = std::make_unique<owge::Ocean_Surface_Render_Procedure>(
+        &ocean_render_technique_settings.settings, &ocean_resources, &camera.camera_data
+        );
 
     auto imgui_render_procedure =
         std::make_unique<owge::Imgui_Render_Procedure>();
 
     render_engine->add_procedure(ocean_simulation_render_procedure.get());
     render_engine->add_procedure(swapchain_pass.get());
+    swapchain_pass->add_subprocedure(ocean_surface_render_procedure.get());
     swapchain_pass->add_subprocedure(imgui_render_procedure.get());
 
     owge::imgui_init(window->get_hwnd(), render_engine.get());
@@ -84,12 +89,13 @@ int32_t main()
         window->poll_events();
         input->update_input_state();
         owge::imgui_new_frame();
+        bool imgui_capture_input = ImGui::GetIO().WantCaptureMouse;
 
         float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
-        camera.aspect = float(window->get_data().height) / float(window->get_data().height);
-        camera.update(input.get(), delta_time, true);
+        camera.aspect = float(window->get_data().width) / float(window->get_data().height);
+        camera.update(input.get(), delta_time, !imgui_capture_input);
 
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
 
         static bool renderer_settings_open = true;
         ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, 512.0f), ImVec2(2.0f * 512.0f, 2.0f * 512.0f));
