@@ -111,7 +111,7 @@ void imgui_set_theme()
     font_cfg.PixelSnapH = true;
     imgui_io.Fonts->AddFontFromFileTTF(
         "res/font/roboto_mono/static/RobotoMono-Regular.ttf",
-        14.0f,
+        16.0f,
         &font_cfg);
     imgui_io.Fonts->Build();
 }
