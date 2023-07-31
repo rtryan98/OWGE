@@ -41,6 +41,25 @@ void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& pa
     payload.cmd->clear_render_target(payload.swapchain, m_settings.clear_color);
     payload.cmd->set_render_target_swapchain(payload.swapchain, {});
 
+    auto swapchain_desc = payload.swapchain->get_acquired_resources().buffer->GetDesc();
+
+    D3D12_VIEWPORT viewport = {
+        .TopLeftX = 0.0f,
+        .TopLeftY = 0.0f,
+        .Width = float(swapchain_desc.Width),
+        .Height = float(swapchain_desc.Height),
+        .MinDepth = 0.0f,
+        .MaxDepth = 1.0f
+    };
+    payload.cmd->set_viewport(viewport);
+    D3D12_RECT scissor = {
+        .left = 0,
+        .top = 0,
+        .right = int32_t(swapchain_desc.Width),
+        .bottom = int32_t(swapchain_desc.Height)
+    };
+    payload.cmd->set_scissor(scissor);
+
     for (auto subproc : m_sub_procedures)
     {
         payload.cmd->begin_event(subproc->get_name());

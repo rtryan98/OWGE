@@ -189,10 +189,28 @@ void Command_List::set_constants_graphics(uint32_t count, void* constants, uint3
     m_cmd->SetGraphicsRoot32BitConstants(0, count, constants, first_constant);
 }
 
+void Command_List::set_index_buffer(Buffer_Handle handle, Index_Type index_type)
+{
+    auto& buffer = m_render_engine->get_buffer(handle);
+    D3D12_INDEX_BUFFER_VIEW ibv = { // TODO: look into performance issues that could arise here?
+        .BufferLocation = buffer.resource->GetGPUVirtualAddress(),
+        .SizeInBytes = uint32_t(buffer.resource->GetDesc().Width),
+        .Format = index_type == Index_Type::Uint16
+            ? DXGI_FORMAT_R16_UINT
+            : DXGI_FORMAT_R32_UINT
+    };
+    m_cmd->IASetIndexBuffer(&ibv);
+}
+
 void Command_List::set_pipeline_state(Pipeline_Handle handle)
 {
     auto& pipeline = m_render_engine->get_pipeline(handle);
     m_cmd->SetPipelineState(pipeline.pso);
+}
+
+void Command_List::set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology)
+{
+    m_cmd->IASetPrimitiveTopology(topology);
 }
 
 void Command_List::set_render_targets(std::span<Texture_Handle> textures, Texture_Handle depth_stencil)
@@ -235,6 +253,16 @@ void Command_List::set_render_target_swapchain(D3D12_Swapchain* swapchain, Textu
         auto swapchain_cpu_handle = swapchain->get_acquired_resources().rtv_descriptor;
         m_cmd->OMSetRenderTargets(1, &swapchain_cpu_handle, 0, nullptr);
     }
+}
+
+void Command_List::set_scissor(const D3D12_RECT& scissor)
+{
+    m_cmd->RSSetScissorRects(1, &scissor);
+}
+
+void Command_List::set_viewport(const D3D12_VIEWPORT& viewport)
+{
+    m_cmd->RSSetViewports(1, &viewport);
 }
 
 void Command_List::begin_event([[maybe_unused]] const char* message)

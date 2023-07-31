@@ -13,6 +13,12 @@ class Render_Engine;
 class D3D12_Swapchain;
 struct Bindset;
 
+enum class Index_Type
+{
+    Uint16,
+    Uint32
+};
+
 struct Texture_Barrier
 {
     Texture_Handle texture;
@@ -88,9 +94,13 @@ public:
     void set_bindset_graphics(const Bindset& bindset, uint32_t first_element = 0);
     void set_constants_compute(uint32_t count, void* constants, uint32_t first_constant);
     void set_constants_graphics(uint32_t count, void* constants, uint32_t first_constant);
+    void set_index_buffer(Buffer_Handle handle, Index_Type index_type);
     void set_pipeline_state(Pipeline_Handle handle);
+    void set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology);
     void set_render_targets(std::span<Texture_Handle> textures, Texture_Handle depth_stencil);
     void set_render_target_swapchain(D3D12_Swapchain* swapchain, Texture_Handle depth_stencil);
+    void set_scissor(const D3D12_RECT& scissor);
+    void set_viewport(const D3D12_VIEWPORT& viewport);
 
     void begin_event(const char* message);
     void end_event();
