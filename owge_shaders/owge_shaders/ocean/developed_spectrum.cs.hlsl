@@ -5,9 +5,13 @@ struct Bindset
 {
     RW_Texture spectrum_tex;
     RW_Texture angular_frequency_tex;
-    RW_Texture developed_spectrum_tex;
     float time;
     uint size;
+
+    RW_Texture packed_spectrum_x_y;
+    RW_Texture packed_spectrum_z_x_dx;
+    RW_Texture packed_spectrum_y_dx_z_dx;
+    RW_Texture packed_spectrum_y_dy_z_dy;
 };
 
 struct Push_Constants
@@ -29,8 +33,8 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float2 wavenumber = spectrum_wavenumber.zw;
     float mag = max(0.0001, length(wavenumber));
     uint2 conjugate_pos = (uint2(bnd.size, bnd.size) - id.xy) % bnd.size;
-    float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float2>(uint3(conjugate_pos, id.z)));
-    float omega_k = bnd.angular_frequency_tex.load_2d<float>(id.xy);
+    float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float4>(uint3(conjugate_pos, id.z)).xy);
+    float omega_k = bnd.angular_frequency_tex.load_2d_array<float>(id.xyz);
 
     float phi = bnd.time * omega_k;
     float2 cmul_term = complex_from_polar(1.0, phi);
@@ -42,15 +46,15 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float2 displacement_y = rotated_developed_spectrum * wavenumber.y * (1.0 / mag);
     float2 displacement_z = developed_spectrum;
 
-    float2 displacement_x_dx = developed_spectrum;
-    float2 displacement_y_dx;
-    float2 displacement_z_dx;
+    float2 displacement_x_dx = -developed_spectrum * wavenumber.x * wavenumber.x * (1.0 / mag);
+    float2 displacement_y_dx = -developed_spectrum * wavenumber.y * wavenumber.x * (1.0 / mag);
+    float2 displacement_z_dx = rotated_developed_spectrum * wavenumber.x;
 
     // displacement_x_dy is equal to displacement_y_dx
-    float2 displacement_y_dy;
-    float2 displacement_z_dy;
+    float2 displacement_y_dy = -developed_spectrum * wavenumber.y * wavenumber.y * (1.0 / mag);
+    float2 displacement_z_dy = rotated_developed_spectrum * wavenumber.y;
 
-    // We have hermitian spectra, so we can calculate two IFFTs in one.
+    // We have hermitian symmetric spectra, so we can calculate two IFFTs in one.
     // F^{-1}[F[a] + i*F[b]]
     float2 packed_spectrum_x_y = displacement_x + float2(-displacement_y.y, displacement_y.x);
     float2 packed_spectrum_z_x_dx = displacement_z + float2(-displacement_x_dx.y, displacement_x_dx.x);
@@ -59,5 +63,8 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 
     uint2 shifted_pos = (id.xy + uint2(bnd.size, bnd.size) / 2) % bnd.size;
 
-    bnd.developed_spectrum_tex.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_x_y);
+    bnd.packed_spectrum_x_y.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_x_y);
+    bnd.packed_spectrum_z_x_dx.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_z_x_dx);
+    bnd.packed_spectrum_y_dx_z_dx.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_y_dx_z_dx);
+    bnd.packed_spectrum_y_dy_z_dy.store_2d_array<float2>(uint3(shifted_pos, id.z), packed_spectrum_y_dy_z_dy);
 }
