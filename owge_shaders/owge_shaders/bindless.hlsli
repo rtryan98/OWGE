@@ -3,6 +3,9 @@
 
 static const uint bindless_max_bindset_size = 16 * sizeof(uint);
 
+// D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE = 2048
+sampler samplers[2048] : register(s0);
+
 template<typename T>
 T read_bindset_uniform(uint bindset_buffer, uint bindset_offset)
 {
@@ -153,12 +156,14 @@ struct Sampler
 
     SamplerState as_nonuniform()
     {
-        return SamplerDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+    //    return SamplerDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        return samplers[NonUniformResourceIndex(handle.read_index())];
     }
 
     SamplerState as_uniform()
     {
-        return SamplerDescriptorHeap[handle.read_index()];
+    //    return SamplerDescriptorHeap[handle.read_index()];
+        return samplers[handle.read_index()];
     }
 };
 
@@ -202,6 +207,13 @@ struct Texture
     }
 
     template<typename T>
+    T sample_2d_array(SamplerState s, float2 uv, uint index)
+    {
+        Texture2DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        return texture.Sample(s, float3(uv, index));
+    }
+
+    template<typename T>
     T sample_3d(SamplerState s, float3 uvw)
     {
         Texture3D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
@@ -220,6 +232,13 @@ struct Texture
     {
         Texture2D<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
         return texture.SampleLevel(s, uv, mip);
+    }
+
+    template<typename T>
+    T sample_level_2d_array(SamplerState s, float2 uv, float mip, uint index)
+    {
+        Texture2DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+        return texture.SampleLevel(s, float3(uv, index), mip);
     }
 
     template<typename T>
@@ -245,7 +264,7 @@ struct RW_Texture
     T load_1d_array(uint2 pos)
     {
         Texture1DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
-        return texture.Load(uint3(pos.x, 0, pos.y));
+        return texture.Load(uint3(pos.x, pos.y, 0));
     }
 
     template<typename T>
@@ -259,7 +278,7 @@ struct RW_Texture
     T load_2d_array(uint3 pos)
     {
         Texture2DArray<T> texture = ResourceDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
-        return texture.Load(uint4(pos.xy, 0, pos.z));
+        return texture.Load(uint4(pos.xyz, 0));
     }
 
     template<typename T>
