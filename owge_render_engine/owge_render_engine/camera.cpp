@@ -22,6 +22,7 @@ void Simple_Fly_Camera::update(Input* input, float dt, bool active)
         XMLoadFloat3(&this->up)));
     XMStoreFloat4x4(&this->camera_data.view_proj, XMMatrixMultiply(
         XMLoadFloat4x4(&this->camera_data.view), XMLoadFloat4x4(&this->camera_data.proj)));
+    camera_data.position = { position.x, position.y, position.z, 0.0f };
 }
 
 void Simple_Fly_Camera::update_rotation(Input* input)

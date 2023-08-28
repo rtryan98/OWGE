@@ -17,6 +17,7 @@ struct Camera_Data
     XMFLOAT4X4 proj;
     XMFLOAT4X4 view;
     XMFLOAT4X4 view_proj;
+    XMFLOAT4 position;
 };
 
 struct Fly_Camera_Input_Mapping
