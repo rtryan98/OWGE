@@ -139,7 +139,7 @@ float oceanography_v_yu_karaev_spectrum(float omega, float omega_peak, float ome
 float oceanography_positive_cos_sq_directional_spreading(float theta)
 {
     float a = 2.0f / MC_PI * pow(cos(theta), 2.0f);
-    bool condition = -MC_PI / 2.0f < theta && theta < MC_PI / 2.0f;
+    bool condition = ((-MC_PI / 2.0f) < theta) && (theta < (MC_PI / 2.0f));
     return condition
         ? a
         : 0.0f;
