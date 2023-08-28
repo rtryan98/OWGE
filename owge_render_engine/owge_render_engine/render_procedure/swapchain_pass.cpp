@@ -36,10 +36,39 @@ void Swapchain_Pass_Render_Procedure::process(const Render_Procedure_Payload& pa
         },
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
         });
+    if (!m_settings.depth_stencil_texture.is_null_handle())
+    {
+        barrier_builder.push(Texture_Barrier {
+            .texture = m_settings.depth_stencil_texture,
+            .sync_before = D3D12_BARRIER_SYNC_NONE,
+            .sync_after = D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+            .access_before = D3D12_BARRIER_ACCESS_NO_ACCESS,
+            .access_after = D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE,
+            .layout_before = D3D12_BARRIER_LAYOUT_UNDEFINED,
+            .layout_after = D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE,
+            .subresources = {
+                .IndexOrFirstMipLevel = 0xFFFFFFFF,
+                .NumMipLevels = 0,
+                .FirstArraySlice = 0,
+                .NumArraySlices = 0,
+                .FirstPlane = 0,
+                .NumPlanes = 0
+            },
+            .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE // Maybe DISCARD?
+            });
+    }
     barrier_builder.flush();
 
     payload.cmd->clear_render_target(payload.swapchain, m_settings.clear_color);
-    payload.cmd->set_render_target_swapchain(payload.swapchain, {});
+    if (m_settings.depth_stencil_texture.is_null_handle())
+    {
+        payload.cmd->set_render_target_swapchain(payload.swapchain, {});
+    }
+    else
+    {
+        payload.cmd->clear_depth_stencil(m_settings.depth_stencil_texture, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0);
+        payload.cmd->set_render_target_swapchain(payload.swapchain, m_settings.depth_stencil_texture);
+    }
 
     auto swapchain_desc = payload.swapchain->get_acquired_resources().buffer->GetDesc();
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "owge_render_engine/render_procedure/render_procedure.hpp"
+#include "owge_render_engine/resource.hpp"
 #include <vector>
 
 namespace owge
@@ -8,6 +9,7 @@ namespace owge
 struct Swapchain_Pass_Settings
 {
     float clear_color[4];
+    Texture_Handle depth_stencil_texture;
 };
 
 class Swapchain_Pass_Render_Procedure : public Render_Procedure
