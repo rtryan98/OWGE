@@ -73,7 +73,7 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     {
         sampling_limit = true;
     }
-    if ( (id_shifted.x == 0 && id_shifted.y == 0) || deny )
+    if ( (id_shifted.x == 0 && id_shifted.y == 0) || sampling_limit )
     {
         // We need to set the 0th wavevector to 0.
         // This does not break the calculation either, as this only corresponds to the DC-part of the spectrum.
