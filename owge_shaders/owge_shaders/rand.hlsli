@@ -195,6 +195,11 @@ uint4 pcg4d(uint4 v)
 
 // Box Muller
 
+float box_muller_12(float2 uniform_distr_vals)
+{
+    return cos(2.0 * MC_PI * uniform_distr_vals.x) * sqrt(-2.0 * log(uniform_distr_vals.y));
+}
+
 float2 box_muller_22(float2 uniform_distr_vals, float mean, float std_deviation)
 {
     static const float epsilon = 0.00001;
