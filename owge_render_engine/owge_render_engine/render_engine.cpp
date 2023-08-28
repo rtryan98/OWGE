@@ -166,6 +166,8 @@ void Render_Engine::render(float delta_time)
         m_ctx.cbv_srv_uav_descriptor_heap, m_ctx.sampler_descriptor_heap
         });
     procedure_cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
+    procedure_cmd->SetComputeRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+    procedure_cmd->SetGraphicsRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 
     for (auto procedure : m_procedures)
     {
@@ -233,7 +235,6 @@ void* Render_Engine::upload_data(uint64_t size, uint64_t align, Buffer_Handle ds
         .dst_offset = dst_offset,
         .size = size
         });
-    // frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
     return &static_cast<uint8_t*>(allocation.data)[allocation.offset];
 }
 
@@ -250,7 +251,6 @@ void Render_Engine::copy_and_upload_data(uint64_t size, uint64_t align, Buffer_H
         .dst_offset = dst_offset,
         .size = size
         });
-    // frame_ctx.upload_cmd->CopyBufferRegion(buffer.resource, dst_offset, allocation.resource, allocation.offset, size);
 }
 
 void Render_Engine::update_bindings(const Bindset& bindset)

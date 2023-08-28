@@ -88,6 +88,34 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
     throw_if_failed(ctx.device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&ctx.dsv_descriptor_heap)),
         "Error creating DSV Descriptor Heap.");
 
+    D3D12_DESCRIPTOR_RANGE1 sampler_descriptor_range = {
+        .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+        .NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE,
+        .BaseShaderRegister = 0,
+        .RegisterSpace = 0,
+        .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+        .OffsetInDescriptorsFromTableStart = 0
+    };
+    D3D12_ROOT_PARAMETER1 global_rootsig_params[2] = {
+        {
+            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+            .Constants = {
+                .ShaderRegister = 0,
+                .RegisterSpace = 0,
+                .Num32BitValues = 4
+            },
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+        },
+        {
+            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            .DescriptorTable = {
+                .NumDescriptorRanges = 1,
+                .pDescriptorRanges = &sampler_descriptor_range
+            },
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+        }
+    };
+    /*
     D3D12_ROOT_PARAMETER1 global_rootsig_param = {
         .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
         .Constants = {
@@ -97,15 +125,16 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
         },
         .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
     };
+    */
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC versioned_rootsig_desc = {
         .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
         .Desc_1_2 = {
-            .NumParameters = 1,
-            .pParameters = &global_rootsig_param,
+            .NumParameters = 2,
+            .pParameters = global_rootsig_params,
             .NumStaticSamplers = UINT(settings->static_samplers.size()),
             .pStaticSamplers = settings->static_samplers.data(),
             .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
-                | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
+            //    | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
         }
     };
     Com_Ptr<ID3DBlob> rootsig_error_blob;
