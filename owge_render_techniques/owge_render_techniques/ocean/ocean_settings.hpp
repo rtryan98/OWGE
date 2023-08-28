@@ -43,7 +43,7 @@ struct Ocean_Settings
 
     uint32_t size = 256;
     uint32_t cascade_count = MAX_CASCADES;
-    float length_scales[MAX_CASCADES] = { 8.0f, 32.0f, 256.0f, 1024.0f };
+    float length_scales[MAX_CASCADES] = { 28.5327820804f, 74.6997932802f, 195.56659776f, 512.0f }; // L[3] * (1-phi)^(1-idx)
     float gravity = 9.81f;
     float ocean_depth = 35.0f;
     float horizontal_displacement_scale = 1.0f;
@@ -75,16 +75,17 @@ private:
         Ocean_Spectra_Settings* spectrum);
     void on_gui_simulation();
     void on_gui_render();
+    void on_gui_presets();
+
+    void on_gui_plot();
 
 private:
     int32_t m_last_selected_preset;
     Render_Engine* m_render_engine;
     Ocean_Simulation_Render_Resources* m_resources;
-    /*
-    bool m_dirty_plot = true;
-    std::array<uint32_t, Ocean_Settings::MAX_CASCADES> m_plot_cascade_offsets;
-    std::vector<float> m_spectrum_values;
-    std::vector<float> m_spectrum_rads;
-    */
+
+    bool m_recalculate_plot = true;
+    using Spectrum_Wavenumber_Vector = std::pair<std::vector<float>, std::vector<float>>;
+    std::array<Spectrum_Wavenumber_Vector, Ocean_Settings::MAX_CASCADES> m_cascade_plots;
 };
 }

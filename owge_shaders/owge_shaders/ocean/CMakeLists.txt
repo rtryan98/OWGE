@@ -8,4 +8,5 @@ target_sources(
     surface_render.hlsli
     surface_render.ps.hlsl
     surface_render.vs.hlsl
+    texture_reorder.cs.hlsl
 )

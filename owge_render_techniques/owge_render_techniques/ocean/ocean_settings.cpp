@@ -1,5 +1,6 @@
 #include "owge_render_techniques/ocean/ocean_settings.hpp"
 #include "owge_render_techniques/ocean/ocean_render_resources.hpp"
+#include "owge_render_techniques/ocean/ocean_oceanography.hpp"
 
 #include <bit>
 #include <utility>
@@ -7,8 +8,31 @@
 #include <implot.h>
 #include <string>
 
+#include <owge_imgui/imgui_utils.hpp>
+
 namespace owge
 {
+constexpr const char* OCEAN_TEXT_DIRECTIONAL_SPREADING_FUNCTION =
+"The directional spreading function describes how the direction of the wind affects the wave generation. "
+"As with the spectra, not all directional spreading functions take the same parameters.";
+
+constexpr const char* OCEAN_TEXT_DEPTH =
+"Depth is the average depth of the ocean.";
+
+constexpr const char* OCEAN_TEXT_FETCH =
+"Dimensionless fetch describes the area over which the wind blows; The distance from a lee shore. "
+"A higher value corresponds with higher waves.";
+
+constexpr const char* OCEAN_TEXT_SPECTRUM =
+"The spectrum describes the mathematical model used to describe the wave generation. "
+"Some spectra require different parameters.";
+
+constexpr const char* OCEAN_TEXT_WIND_DIRECTION =
+"Wind direction in degrees. 0deg means that the wind is blowing towards positive x.";
+
+constexpr const char* OCEAN_TEXT_WIND_SPEED =
+"Wind speed describes the average speed of the wind in meters per second at 10 meters above the ocean surface.";
+
 const char* to_string(Ocean_Spectrum spectrum) noexcept
 {
     switch (spectrum)
@@ -76,14 +100,14 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 0.7f,
                 .wind_direction = 55.0f,
-                .fetch = 10000.0f,
+                .fetch = 125.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },
             .swell_spectrum = {
                 .wind_speed = 1.0f,
                 .wind_direction = 64.0f,
-                .fetch = 100000.0f,
+                .fetch = 1250.0f,
                 .spectrum = Ocean_Spectrum::TMA,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Donelan_Banner
             }
@@ -95,14 +119,14 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 3.3f,
                 .wind_direction = 55.0f,
-                .fetch = 10000.0f,
+                .fetch = 125.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },
             .swell_spectrum = {
                 .wind_speed = 3.1f,
                 .wind_direction = 64.0f,
-                .fetch = 100000.0f,
+                .fetch = 1250.0f,
                 .spectrum = Ocean_Spectrum::TMA,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Donelan_Banner
             }
@@ -114,14 +138,14 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 5.0f,
                 .wind_direction = 55.0f,
-                .fetch = 10000.0f,
+                .fetch = 125.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },
             .swell_spectrum = {
                 .wind_speed = 5.4f,
                 .wind_direction = 64.0f,
-                .fetch = 100000.0f,
+                .fetch = 1250.0f,
                 .spectrum = Ocean_Spectrum::TMA,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Donelan_Banner
             }
@@ -171,6 +195,8 @@ void Ocean_Render_Technique_Settings::on_gui_spectrum(
         }
         ImGui::EndCombo();
     }
+    gui_help_marker_same_line(OCEAN_TEXT_SPECTRUM);
+
     ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
     if (ImGui::BeginCombo(directional_spread_combo_name, to_string(spectrum->directional_spreading_function)))
     {
@@ -187,12 +213,19 @@ void Ocean_Render_Technique_Settings::on_gui_spectrum(
         }
         ImGui::EndCombo();
     }
+    gui_help_marker_same_line(OCEAN_TEXT_DIRECTIONAL_SPREADING_FUNCTION);
+
     ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
-    ImGui::SliderFloat(wind_speed_name, &spectrum->wind_speed, 0.05f, 40.0f, "%.3f m/s", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderFloat(wind_speed_name, &spectrum->wind_speed, 0.5f, 40.0f, "%.3f m/s");
+    gui_help_marker_same_line(OCEAN_TEXT_WIND_SPEED);
+
     ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
     ImGui::SliderFloat(wind_direction_name, &spectrum->wind_direction, 0.0f, 359.999f, "%.3f deg", ImGuiSliderFlags_AlwaysClamp);
+    gui_help_marker_same_line(OCEAN_TEXT_WIND_DIRECTION);
+
     ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
     ImGui::InputFloat(fetch_name, &spectrum->fetch, 1000.0f, 0.0f, "%.1f");
+    gui_help_marker_same_line(OCEAN_TEXT_FETCH);
 }
 
 void Ocean_Render_Technique_Settings::on_gui_simulation()
@@ -210,11 +243,6 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
         ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
         ImGui::SliderFloat("Horizontal Displacement Scale", &this->settings.horizontal_displacement_scale, 0.0f, 1.0f);
 
-        if (settings.size != current_size)
-        {
-            m_resources->resize_textures(m_render_engine, &this->settings);
-        }
-
         static const char* cascade_options[] = { "1", "2", "3", "4" };
         int32_t current_cascade = settings.cascade_count - 1;
         ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
@@ -227,6 +255,10 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
             ImGui::InputFloat(cascade_string.c_str(), &settings.length_scales[i], 0.5f);
         }
         ImGui::Checkbox("Swell Enabled", &this->settings.swell_enabled);
+
+        ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
+        ImGui::SliderFloat("Depth", &this->settings.ocean_depth, 8.0f, 256.0f, "%.3f m");
+        gui_help_marker_same_line(OCEAN_TEXT_DEPTH);
 
         ImGui::SeparatorText("Local Energy Spectrum Settings");
         on_gui_spectrum(
@@ -250,105 +282,18 @@ void Ocean_Render_Technique_Settings::on_gui_simulation()
         }
 
         ImGui::SeparatorText("Presets");
-        ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
-        if (ImGui::BeginCombo("Complete Presets##Ocean_Simulation",
-            m_last_selected_preset != -1
-            ? presets[m_last_selected_preset].name
-            : "No preset selected"))
-        {
-            for (auto i = 0; i < IM_ARRAYSIZE(presets); ++i)
-            {
-                if (ImGui::Selectable(presets[i].name, m_last_selected_preset == i))
-                {
-                    m_last_selected_preset = i;
-                }
-            }
-            ImGui::EndCombo();
-        }
-        if (ImGui::Button("Apply Preset"))
-        {
-            if (m_last_selected_preset != -1)
-            {
-                settings = presets[m_last_selected_preset].settings;
-            }
-        }
+        on_gui_presets();
 
-        /*
         ImGui::Separator();
+        on_gui_plot();
 
-        if (m_dirty_plot)
-        {
-            m_spectrum_rads.clear();
-            m_spectrum_rads.push_back(0.0f);
-            m_spectrum_values.clear();
-            m_spectrum_values.push_back(0.0f);
-            for (auto i = 0; i < Ocean_Settings::MAX_CASCADES; ++i)
-            {
-                m_plot_cascade_offsets[i] = uint32_t(m_spectrum_values.size() - 1u);
-                constexpr static uint32_t PLOT_MAX_SAMPLES = 64;
-                for (auto j = 0; j < PLOT_MAX_SAMPLES; ++j)
-                {
-                    float lengthscale = 2.0f * 3.14f * (j * settings.length_scales[i]);
-                    if (i < Ocean_Settings::MAX_CASCADES - 1 && lengthscale > 2.0f * 3.14f / settings.length_scales[i + 1])
-                        break;
-                    if (i > 0 && lengthscale < 2.0f * 3.14f / settings.length_scales[i - 1])
-                        continue;
-                    m_spectrum_rads.push_back(lengthscale);
-                    m_spectrum_values.push_back(lengthscale);
-                }
-            }
-
-            m_dirty_plot = false;
-        }
-
-        if (ImPlot::BeginPlot("Ocean Energy Spectrum Preview", ImVec2(-1, 0),
-            ImPlotFlags_NoFrame))
-        {
-            constexpr static auto cascade0_fill_color = ImVec4(1.00f, 0.25f, 0.05f, 0.10f);
-            constexpr static auto cascade0_line_color = ImVec4(1.00f, 0.25f, 0.05f, 0.75f);
-
-            constexpr static auto cascade1_fill_color = ImVec4(0.15f, 0.21f, 1.00f, 0.10f);
-            constexpr static auto cascade1_line_color = ImVec4(0.15f, 0.21f, 1.00f, 0.75f);
-
-            constexpr static auto cascade2_fill_color = ImVec4(0.15f, 0.95f, 0.25f, 0.10f);
-            constexpr static auto cascade2_line_color = ImVec4(0.15f, 0.95f, 0.25f, 0.75f);
-
-            constexpr static auto cascade3_fill_color = ImVec4(0.90f, 0.80f, 0.10f, 0.10f);
-            constexpr static auto cascade3_line_color = ImVec4(0.90f, 0.80f, 0.10f, 0.75f);
-
-            ImPlot::SetupLegend(ImPlotLocation_North);
-
-            ImPlot::SetupAxis(ImAxis_X1, "omega, rad/s",
-                ImPlotAxisFlags_NoHighlight | ImPlotAxisFlags_NoMenus);
-            //ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, m_spectrum_rads[m_spectrum_rads.size() - 1], ImPlotCond_Always);
-
-            ImPlot::SetupAxis(ImAxis_Y1, "m^2/rad",
-                ImPlotAxisFlags_NoHighlight | ImPlotAxisFlags_NoMenus);
-            //ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, m_spectrum_values[m_spectrum_values.size() - 1], ImPlotCond_Always);
-
-            ImPlot::SetNextFillStyle(cascade0_fill_color);
-            ImPlot::SetNextLineStyle(cascade0_line_color, 2.0f);
-            ImPlot::PlotLine("Cascade 1", m_spectrum_rads.data(), m_spectrum_values.data(),
-                m_plot_cascade_offsets[1], ImPlotLineFlags_Shaded, m_plot_cascade_offsets[0]);
-
-            ImPlot::SetNextFillStyle(cascade1_fill_color);
-            ImPlot::SetNextLineStyle(cascade1_line_color, 2.0f);
-            ImPlot::PlotLine("Cascade 2", m_spectrum_rads.data(), m_spectrum_values.data(),
-                m_plot_cascade_offsets[2], ImPlotLineFlags_Shaded, m_plot_cascade_offsets[1]);
-
-            ImPlot::SetNextFillStyle(cascade2_fill_color);
-            ImPlot::SetNextLineStyle(cascade2_line_color, 2.0f);
-            ImPlot::PlotLine("Cascade 3", m_spectrum_rads.data(), m_spectrum_values.data(),
-                m_plot_cascade_offsets[3], ImPlotLineFlags_Shaded, m_plot_cascade_offsets[2]);
-
-            ImPlot::SetNextFillStyle(cascade3_fill_color);
-            ImPlot::SetNextLineStyle(cascade3_line_color, 2.0f);
-            ImPlot::PlotLine("Cascade 4", m_spectrum_rads.data(), m_spectrum_values.data(),
-                uint32_t(m_spectrum_rads.size() - 1u), ImPlotLineFlags_Shaded, m_plot_cascade_offsets[3]);
-            ImPlot::EndPlot();
-        }
-        */
         ImGui::TreePop();
+        ImGui::Indent();
+
+        if (settings.size != current_size)
+        {
+            m_resources->resize_textures(m_render_engine, &this->settings);
+        }
     }
 }
 
@@ -356,7 +301,94 @@ void Ocean_Render_Technique_Settings::on_gui_render()
 {
     if (ImGui::TreeNode("Render Settings"))
     {
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+
+        ImGui::Text("Test");
         ImGui::TreePop();
+        ImGui::Indent();
     }
+}
+
+void Ocean_Render_Technique_Settings::on_gui_presets()
+{
+    ImGui::SetNextItemWidth(IMGUI_ELEMENT_SIZE);
+    if (ImGui::BeginCombo("Complete Presets##Ocean_Simulation",
+        m_last_selected_preset != -1
+        ? presets[m_last_selected_preset].name
+        : "No preset selected"))
+    {
+        for (auto i = 0; i < IM_ARRAYSIZE(presets); ++i)
+        {
+            if (ImGui::Selectable(presets[i].name, m_last_selected_preset == i))
+            {
+                m_last_selected_preset = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::Button("Apply Preset"))
+    {
+        if (m_last_selected_preset != -1)
+        {
+            settings = presets[m_last_selected_preset].settings;
+        }
+    }
+}
+
+void Ocean_Render_Technique_Settings::on_gui_plot()
+{
+    if (m_recalculate_plot)
+    {
+        for (auto i = 0; i < Ocean_Settings::MAX_CASCADES; ++i)
+        {
+            m_cascade_plots[i] = ocean_calculate_spectrum_for_cascade(settings, i);
+        }
+    }
+
+    if (ImPlot::BeginPlot("Ocean Energy Spectrum Preview", ImVec2(-1, 0),
+        ImPlotFlags_NoFrame | ImPlotFlags_NoInputs))
+    {
+        constexpr static auto cascade_fill_colors = std::to_array( {
+            ImVec4(1.00f, 0.25f, 0.05f, 0.10f),
+            ImVec4(0.15f, 0.21f, 1.00f, 0.10f),
+            ImVec4(0.15f, 0.95f, 0.25f, 0.10f),
+            ImVec4(0.90f, 0.80f, 0.10f, 0.10f)
+            });
+        constexpr static auto cascade_line_colors = std::to_array({
+            ImVec4(1.00f, 0.25f, 0.05f, 0.75f),
+            ImVec4(0.15f, 0.21f, 1.00f, 0.75f),
+            ImVec4(0.15f, 0.95f, 0.25f, 0.75f),
+            ImVec4(0.90f, 0.80f, 0.10f, 0.75f)
+            });
+
+        ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside);
+
+        // auto last_sample = ocean_calculate_spectrum_sample_for_cascade(settings, 0, settings.size, false).second;
+        // auto first_sample = ocean_calculate_spectrum_sample_for_cascade(settings, settings.cascade_count - 1u, 0, false).second;
+
+        ImPlot::SetNextAxesToFit();
+
+        ImPlot::SetupAxis(ImAxis_X1, "omega, rad/s",
+            ImPlotAxisFlags_NoHighlight | ImPlotAxisFlags_NoMenus);
+        //ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, last_sample, ImPlotCond_Always);
+        // ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+
+        ImPlot::SetupAxis(ImAxis_Y1, "m^2/rad",
+            ImPlotAxisFlags_NoHighlight | ImPlotAxisFlags_NoMenus);
+        //ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0f, INFINITY);
+        // ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 0.0f, ImPlotCond_Always);
+
+        for (auto i = 0u; i < settings.cascade_count; ++i)
+        {
+            std::string label = "Cascade " + std::to_string(i + 1u);
+            ImPlot::SetNextFillStyle(cascade_fill_colors[i]);
+            ImPlot::SetNextLineStyle(cascade_line_colors[i], 2.0f);
+            ImPlot::PlotLine(label.c_str(), m_cascade_plots[i].second.data(), m_cascade_plots[i].first.data(),
+                int32_t(m_cascade_plots[i].second.size()), ImPlotLineFlags_Shaded);
+        }
+
+        ImPlot::EndPlot();
+    }
+    ImGui::Checkbox("Auto Update Plot", &m_recalculate_plot);
 }
 }

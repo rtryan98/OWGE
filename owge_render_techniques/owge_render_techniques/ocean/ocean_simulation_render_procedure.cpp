@@ -19,6 +19,7 @@ void Ocean_Simulation_Render_Procedure::process(const Render_Procedure_Payload& 
     process_initial_spectrum(payload, barrier_builder);
     process_developed_spectrum(payload, barrier_builder);
     process_ffts(payload, barrier_builder);
+    process_reorder(payload, barrier_builder);
 }
 
 float oceanography_calculate_v_yu_karaev_spectrum_omega_m(float fetch)
@@ -48,7 +49,12 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
 
     Ocean_Simulation_Initial_Spectrum_Parameter_Buffer initial_spectrum_parameters = {
         .size = m_settings->size,
-        .length_scale = m_settings->length_scales[0],
+        .length_scales = {
+            m_settings->length_scales[0],
+            m_settings->length_scales[1],
+            m_settings->length_scales[2],
+            m_settings->length_scales[3]
+        },
         .gravity = m_settings->gravity,
         .ocean_depth = m_settings->ocean_depth,
         .spectra = {
@@ -112,7 +118,10 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
 
     payload.cmd->set_bindset_compute(m_resources->initial_spectrum_bindset);
     payload.cmd->set_pipeline_state(m_resources->initial_spectrum_pso);
-    payload.cmd->dispatch_div_by_workgroups(m_resources->initial_spectrum_pso, size, size, 1);
+    payload.cmd->dispatch_div_by_workgroups(
+        m_resources->initial_spectrum_pso,
+        size, size, m_settings->cascade_count,
+        true, true, false);
 
     barrier_builder.push({
         .texture = m_resources->initial_spectrum_texture,
@@ -160,8 +169,17 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
     payload.cmd->begin_event("Developed_Spectrum_Computation");
 
     auto size = m_settings->size;
-    barrier_builder.push({
-        .texture = m_resources->developed_spectrum_texture,
+
+    auto textures = std::to_array({
+        m_resources->packed_x_y_texture,
+        m_resources->packed_z_x_dx_texture,
+        m_resources->packed_y_dx_z_dx_texture,
+        m_resources->packed_y_dy_z_dy_texture
+        });
+    for (auto texture : textures)
+    {
+        barrier_builder.push({
+        .texture = texture,
         .sync_before = D3D12_BARRIER_SYNC_NONE,
         .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
         .access_before = D3D12_BARRIER_ACCESS_NO_ACCESS,
@@ -177,24 +195,33 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
             .NumPlanes = 1
         },
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-        });
+            });
+    }
     barrier_builder.flush();
 
     Ocean_Developed_Spectrum_Shader_Bindset developed_spectrum_bindset = {
         .initial_spectrum_tex_idx = uint32_t(m_resources->initial_spectrum_texture.bindless_idx),
         .angular_frequency_tex_idx = uint32_t(m_resources->angular_frequency_texture.bindless_idx),
-        .developed_spectrum_tex_idx = uint32_t(m_resources->developed_spectrum_texture.bindless_idx),
         .time = m_time,
-        .size = size
+        .size = size,
+        .packed_spectrum_x_y_tex_idx = uint32_t(m_resources->packed_x_y_texture.bindless_idx),
+        .packed_spectrum_z_x_dx_tex_idx = uint32_t(m_resources->packed_z_x_dx_texture.bindless_idx),
+        .packed_spectrum_y_dx_z_dx_tex_idx = uint32_t(m_resources->packed_y_dx_z_dx_texture.bindless_idx),
+        .packed_spectrum_y_dy_z_dy_tex_idx = uint32_t(m_resources->packed_y_dy_z_dy_texture.bindless_idx)
     };
     m_resources->developed_spectrum_bindset.write_data(developed_spectrum_bindset);
     payload.render_engine->update_bindings(m_resources->developed_spectrum_bindset);
     payload.cmd->set_bindset_compute(m_resources->developed_spectrum_bindset);
     payload.cmd->set_pipeline_state(m_resources->developed_spectrum_pso);
-    payload.cmd->dispatch_div_by_workgroups(m_resources->developed_spectrum_pso, size, size, 1);
+    payload.cmd->dispatch_div_by_workgroups(
+        m_resources->developed_spectrum_pso,
+        size, size, m_settings->cascade_count,
+        true, true, false);
 
-    barrier_builder.push({
-        .texture = m_resources->developed_spectrum_texture,
+    for (auto texture : textures)
+    {
+        barrier_builder.push({
+        .texture = texture,
         .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
         .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
         .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
@@ -210,7 +237,8 @@ void Ocean_Simulation_Render_Procedure::process_developed_spectrum(
             .NumPlanes = 1
         },
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-        });
+            });
+    }
     barrier_builder.flush();
 
     payload.cmd->end_event();
@@ -237,43 +265,74 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
         std::unreachable();
         break;
     }
-    Ocean_FFT_Constants fft_constants = {
-        .texture = uint32_t(m_resources->developed_spectrum_texture.bindless_idx),
+
+    auto textures = std::to_array({
+        m_resources->packed_x_y_texture,
+        m_resources->packed_z_x_dx_texture,
+        m_resources->packed_y_dx_z_dx_texture,
+        m_resources->packed_y_dy_z_dy_texture
+        });
+
+    Texture_Barrier tex_barrier = {
+        .texture = {},
+        .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+        .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .subresources = {
+            .IndexOrFirstMipLevel = 0,
+            .NumMipLevels = 1,
+            .FirstArraySlice = 0,
+            .NumArraySlices = m_settings->cascade_count,
+            .FirstPlane = 0,
+            .NumPlanes = 1
+        },
+        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
+    };
+
+    Ocean_FFT_Constants constants = {
+        .texture = 0,
         .vertical = false,
         .inverse = true
     };
-    payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
-    payload.cmd->dispatch(1, size, 1);
-    barrier_builder.push({
-        .texture = m_resources->developed_spectrum_texture,
-        .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-        .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-        .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-        .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-        .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-        .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-        .subresources = {
-            .IndexOrFirstMipLevel = 0,
-            .NumMipLevels = 1,
-            .FirstArraySlice = 0,
-            .NumArraySlices = m_settings->cascade_count,
-            .FirstPlane = 0,
-            .NumPlanes = 1
-        },
-        .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-        });
+    for (auto texture : textures)
+    {
+        tex_barrier.texture = texture;
+        constants.texture = uint32_t(texture.bindless_idx);
+        payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &constants, 0);
+        payload.cmd->dispatch(1, size, m_settings->cascade_count);
+        barrier_builder.push(tex_barrier);
+    }
+
     barrier_builder.flush();
 
-    fft_constants.vertical = true;
-    payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &fft_constants, 0);
-    payload.cmd->dispatch(1, size, 1);
-    barrier_builder.push({
-        .texture = m_resources->developed_spectrum_texture,
-        .sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+    constants.vertical = true;
+    for (auto texture : textures)
+    {
+        tex_barrier.texture = texture;
+        constants.texture = uint32_t(texture.bindless_idx);
+        payload.cmd->set_constants_compute(sizeof(Ocean_FFT_Constants) / sizeof(uint32_t), &constants, 0);
+        payload.cmd->dispatch(1, size, m_settings->cascade_count);
+        barrier_builder.push(tex_barrier);
+    }
+
+    payload.cmd->end_event();
+}
+
+void Ocean_Simulation_Render_Procedure::process_reorder(
+    const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
+{
+    payload.cmd->begin_event("Reorder Textures + Jacobian");
+
+    auto tex_barrier = Texture_Barrier{
+        .texture = m_resources->displacement_x_y_z_texture,
+        .sync_before = D3D12_BARRIER_SYNC_NONE,
         .sync_after = D3D12_BARRIER_SYNC_COMPUTE_SHADING,
-        .access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
+        .access_before = D3D12_BARRIER_ACCESS_NO_ACCESS,
         .access_after = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS,
-        .layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+        .layout_before = D3D12_BARRIER_LAYOUT_UNDEFINED,
         .layout_after = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
         .subresources = {
             .IndexOrFirstMipLevel = 0,
@@ -284,7 +343,37 @@ void Ocean_Simulation_Render_Procedure::process_ffts(
             .NumPlanes = 1
         },
         .flags = D3D12_TEXTURE_BARRIER_FLAG_NONE
-        });
+    };
+    barrier_builder.push(tex_barrier);
+    tex_barrier.texture = m_resources->derivatives_texture;
+    barrier_builder.push(tex_barrier);
+    tex_barrier.texture = m_resources->jacobian_texture;
+    barrier_builder.push(tex_barrier);
+    barrier_builder.flush();
+
+    auto size = m_settings->size;
+    payload.cmd->set_bindset_compute(m_resources->texture_reorder_bindset);
+    payload.cmd->set_pipeline_state(m_resources->texture_reorder_pso);
+    payload.cmd->dispatch_div_by_workgroups(m_resources->texture_reorder_pso,
+        size, size, m_settings->cascade_count,
+        true, true, false);
+
+    tex_barrier.sync_before = D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+
+    tex_barrier.access_before = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+    tex_barrier.access_after = D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+    tex_barrier.layout_before = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+    tex_barrier.layout_after = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+
+    tex_barrier.texture = m_resources->displacement_x_y_z_texture;
+    tex_barrier.sync_after = D3D12_BARRIER_SYNC_VERTEX_SHADING;
+    barrier_builder.push(tex_barrier);
+    tex_barrier.texture = m_resources->derivatives_texture;
+    tex_barrier.sync_after = D3D12_BARRIER_SYNC_PIXEL_SHADING;
+    barrier_builder.push(tex_barrier);
+    tex_barrier.texture = m_resources->jacobian_texture;
+    tex_barrier.sync_after = D3D12_BARRIER_SYNC_PIXEL_SHADING;
+    barrier_builder.push(tex_barrier);
     barrier_builder.flush();
 
     payload.cmd->end_event();
