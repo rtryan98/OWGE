@@ -48,8 +48,24 @@ int32_t main()
         d3d12_settings,
         render_engine_settings);
 
+    owge::Texture_Desc ds_tex_desc = {
+        .width = 1920,
+        .height = 1080,
+        .depth_or_array_layers = 1,
+        .mip_levels = 1,
+        .dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        .srv_dimension = D3D12_SRV_DIMENSION_UNKNOWN,
+        .uav_dimension = D3D12_UAV_DIMENSION_UNKNOWN,
+        .rtv_dimension = D3D12_RTV_DIMENSION_UNKNOWN,
+        .dsv_dimension = D3D12_DSV_DIMENSION_TEXTURE2D,
+        .initial_layout = D3D12_BARRIER_LAYOUT_UNDEFINED,
+        .format = DXGI_FORMAT_D32_FLOAT
+    };
+    auto ds_texture = render_engine->create_texture(ds_tex_desc);
+
     owge::Swapchain_Pass_Settings swapchain_pass_settings = {
-        .clear_color = { 0.25f, 0.25f, 0.75f, 0.0f }
+        .clear_color = { 0.0f, 0.0f, 0.0f, 0.0f },
+        .depth_stencil_texture = ds_texture
     };
     auto swapchain_pass = std::make_unique<owge::Swapchain_Pass_Render_Procedure>(
         swapchain_pass_settings);
@@ -111,6 +127,8 @@ int32_t main()
     }
 
     owge::imgui_shutdown();
+
+    render_engine->destroy_texture(ds_texture);
     ocean_resources.destroy(render_engine.get());
 
     return 0;

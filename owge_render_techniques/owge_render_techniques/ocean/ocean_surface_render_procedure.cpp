@@ -20,7 +20,14 @@ Ocean_Surface_Render_Procedure::Ocean_Surface_Render_Procedure(
 void Ocean_Surface_Render_Procedure::process(const Render_Procedure_Payload& payload)
 {
     Ocean_Surface_VS_Render_Data vs_render_data = {
-        .view_proj = m_camera->view_proj
+        .view_proj = m_camera->view_proj,
+        .length_scales = {
+            m_settings->length_scales[0],
+            m_settings->length_scales[1],
+            m_settings->length_scales[2],
+            m_settings->length_scales[3]
+        },
+        .camera_position = m_camera->position
     };
     payload.render_engine->copy_and_upload_data(
         sizeof(Ocean_Surface_VS_Render_Data),
