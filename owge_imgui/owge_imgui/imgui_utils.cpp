@@ -148,4 +148,21 @@ void imgui_shutdown()
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
 }
+void gui_help_marker(const char* text)
+{
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
+    {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(text);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
+void gui_help_marker_same_line(const char* text)
+{
+    ImGui::SameLine();
+    gui_help_marker(text);
+}
 }
