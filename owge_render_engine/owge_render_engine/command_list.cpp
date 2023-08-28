@@ -13,7 +13,8 @@
 namespace owge
 {
 Barrier_Builder::Barrier_Builder(Render_Engine* render_engine, ID3D12GraphicsCommandList7* cmd)
-    : m_render_engine(render_engine), m_cmd(cmd)
+    : m_render_engine(render_engine)
+    , m_cmd(cmd)
 {}
 
 void Barrier_Builder::push(const Texture_Barrier& barrier)
@@ -138,10 +139,14 @@ void Command_List::dispatch(uint32_t x, uint32_t y, uint32_t z)
     m_cmd->Dispatch(x, y, z);
 }
 
-void Command_List::dispatch_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z)
+void Command_List::dispatch_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z,
+    bool div_x, bool div_y, bool div_z)
 {
     auto& pipeline = m_render_engine->get_pipeline(pso);
-    m_cmd->Dispatch(x / pipeline.workgroups_x, y / pipeline.workgroups_y, z / pipeline.workgroups_z);
+    auto groups_x = x / (div_x ? pipeline.workgroups_x : 1);
+    auto groups_y = y / (div_y ? pipeline.workgroups_y : 1);
+    auto groups_z = z / (div_z ? pipeline.workgroups_z : 1);
+    m_cmd->Dispatch(groups_x, groups_y, groups_z);
 }
 
 void Command_List::dispatch_mesh(uint32_t x, uint32_t y, uint32_t z)
@@ -149,10 +154,14 @@ void Command_List::dispatch_mesh(uint32_t x, uint32_t y, uint32_t z)
     m_cmd->DispatchMesh(x, y, z);
 }
 
-void Command_List::dispatch_mesh_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z)
+void Command_List::dispatch_mesh_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z,
+    bool div_x, bool div_y, bool div_z)
 {
     auto& pipeline = m_render_engine->get_pipeline(pso);
-    m_cmd->DispatchMesh(x / pipeline.workgroups_x, y / pipeline.workgroups_y, z / pipeline.workgroups_z);
+    auto groups_x = x / ( div_x ? pipeline.workgroups_x : 1 );
+    auto groups_y = y / ( div_y ? pipeline.workgroups_y : 1 );
+    auto groups_z = z / ( div_z ? pipeline.workgroups_z : 1 );
+    m_cmd->DispatchMesh(groups_x, groups_y, groups_z);
 }
 
 void Command_List::draw(uint32_t vertex_count, uint32_t vertex_offset,

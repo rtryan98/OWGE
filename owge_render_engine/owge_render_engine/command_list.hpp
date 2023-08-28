@@ -83,9 +83,11 @@ public:
     void clear_render_target(D3D12_Swapchain* swapchain, float clear_color[4]);
     void clear_render_target(Texture_Handle texture, float clear_color[4]);
     void dispatch(uint32_t x, uint32_t y, uint32_t z);
-    void dispatch_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z);
+    void dispatch_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z,
+        bool div_x = false, bool div_y = false, bool div_z = false);
     void dispatch_mesh(uint32_t x, uint32_t y, uint32_t z);
-    void dispatch_mesh_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z);
+    void dispatch_mesh_div_by_workgroups(Pipeline_Handle pso, uint32_t x, uint32_t y, uint32_t z,
+        bool div_x = false, bool div_y = false, bool div_z = false);
     void draw(uint32_t vertex_count, uint32_t vertex_offset,
         uint32_t instance_count, uint32_t instance_offset);
     void draw_indexed(uint32_t index_count, uint32_t index_offset,
