@@ -72,6 +72,7 @@ struct Texture_Desc
     D3D12_DSV_DIMENSION dsv_dimension;
     D3D12_BARRIER_LAYOUT initial_layout;
     DXGI_FORMAT format;
+    D3D12_CLEAR_VALUE optimized_clear_value;
 };
 
 struct Texture

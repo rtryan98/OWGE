@@ -117,7 +117,7 @@ Texture_Handle Resource_Manager::create_texture(const Texture_Desc& desc, const 
         .DepthOrArraySize = uint16_t(desc.depth_or_array_layers),
         .MipLevels = uint16_t(desc.mip_levels),
         .Format = desc.format,
-        .SampleDesc = {.Count = 1, .Quality = 1 },
+        .SampleDesc = { .Count = 1, .Quality = 0 },
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
         .Flags = D3D12_RESOURCE_FLAG_NONE,
         .SamplerFeedbackMipRegion = {}
@@ -129,6 +129,7 @@ Texture_Handle Resource_Manager::create_texture(const Texture_Desc& desc, const 
         .CreationNodeMask = 0,
         .VisibleNodeMask = 0
     };
+
     resource_desc.Flags |= desc.uav_dimension != D3D12_UAV_DIMENSION_UNKNOWN
         ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
         : D3D12_RESOURCE_FLAG_NONE;
@@ -138,9 +139,26 @@ Texture_Handle Resource_Manager::create_texture(const Texture_Desc& desc, const 
     resource_desc.Flags |= desc.dsv_dimension != D3D12_DSV_DIMENSION_UNKNOWN
         ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
         : D3D12_RESOURCE_FLAG_NONE;
+
+    bool clear_value_allowed = false;
+    if ((resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) ||
+        (resource_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET))
+    {
+        clear_value_allowed = true;
+    }
+    D3D12_CLEAR_VALUE clear_value = {};
+    if (desc.optimized_clear_value.Format != DXGI_FORMAT_UNKNOWN)
+    {
+        clear_value = desc.optimized_clear_value;
+    }
+    else
+    {
+        clear_value_allowed = false;
+    }
+
     m_ctx->device->CreateCommittedResource3(
         &heap_properties, D3D12_HEAP_FLAG_NONE,
-        &resource_desc, desc.initial_layout, nullptr,
+        &resource_desc, desc.initial_layout, clear_value_allowed ? &clear_value : nullptr,
         nullptr, 0, nullptr, IID_PPV_ARGS(&texture.resource));
     if (name)
     {
