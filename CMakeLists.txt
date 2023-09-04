@@ -64,6 +64,11 @@ macro(set_target_default_properties TARGET)
             ${TARGET} PROPERTIES
             VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
+        target_compile_definitions(
+            ${TARGET} PRIVATE
+            NOMINMAX
+            WIN32_LEAN_AND_MEAN
+        )
     endif()
 endmacro()
 
@@ -312,6 +317,10 @@ target_link_libraries(
     owge_tech_demo PUBLIC
     owge_render_engine
     owge_render_techniques
+)
+target_include_directories(
+    owge_tech_demo PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tclap/include
 )
 add_dependencies(owge_tech_demo owge_shaders)
 
