@@ -7,3 +7,6 @@
 [submodule "thirdparty/implot"]
 	path = thirdparty/implot
 	url = https://github.com/epezent/implot
+[submodule "thirdparty/tclap"]
+	path = thirdparty/tclap
+	url = https://github.com/mirror/tclap
