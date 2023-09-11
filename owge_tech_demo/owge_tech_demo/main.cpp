@@ -16,12 +16,41 @@
 #include <owge_render_techniques/ocean/ocean_render_resources.hpp>
 #include <owge_render_techniques/ocean/ocean_surface_render_procedure.hpp>
 
+#include <tclap/CmdLine.h>
+#include <tclap/SwitchArg.h>
+#include <tclap/UnlabeledValueArg.h>
+
 #undef near // Really windows?
 #undef far
 
-int32_t main()
+int32_t main(uint32_t argc, const char* argv[])
 {
     SetProcessDPIAware();
+
+    TCLAP::CmdLine cmd_line("OWGE Tech Demo");
+    // cmd_line.setOutput(nullptr); Set nullptr for deployment.
+    TCLAP::SwitchArg enable_d3d12_validation_arg(
+        "",
+        "d3d12_validation_enable",
+        "Enable validation layers for D3D12.",
+        cmd_line, false);
+    TCLAP::SwitchArg enable_d3d12_gpu_validation_arg(
+        "",
+        "d3d12_gpu_based_validation_enable",
+        "Enable GPU based validation for D3D12. Implies 'd3d12_validation_enable'.",
+        cmd_line, false);
+    TCLAP::SwitchArg enable_nvperf_arg(
+        "",
+        "nvperf_enable",
+        "Enable profiling with NVIDIA Nsight Perf. "
+        "Incompatible with 'd3d12_validation_enable' and 'd3d12_gpu_based_validation_enable'.",
+        cmd_line, false);
+    TCLAP::SwitchArg lock_clocks_to_tdp_arg(
+        "",
+        "nvperf_lock_clocks_to_tdp",
+        "Lock GPU clocks to TDP. Implies 'nvperf_enable'.",
+        cmd_line, false);
+    cmd_line.parse(argc, argv);
 
     owge::Window_Settings window_settings = {
         .width = 1920,
@@ -33,14 +62,14 @@ int32_t main()
         window_settings);
     auto input = std::make_unique<owge::Input>(window->get_hwnd());
     owge::D3D12_Context_Settings d3d12_settings = {
-        .enable_validation = true,
-        .enable_gpu_based_validation = false,
+        .enable_validation = enable_d3d12_gpu_validation_arg.getValue() || enable_d3d12_validation_arg.getValue(),
+        .enable_gpu_based_validation = enable_d3d12_gpu_validation_arg.getValue(),
         .disable_tdr = false,
         .d3d_feature_level = D3D_FEATURE_LEVEL_12_1,
         .static_samplers = {}
     };
     owge::Render_Engine_Settings render_engine_settings = {
-        .nvperf_enabled = false,
+        .nvperf_enabled = d3d12_settings.enable_validation ? false : enable_nvperf_arg.getValue(),
         .nvperf_lock_clocks_to_rated_tdp = false
     };
     auto render_engine = std::make_unique<owge::Render_Engine>(
@@ -48,9 +77,10 @@ int32_t main()
         d3d12_settings,
         render_engine_settings);
 
+    auto window_data = window->get_data();
     owge::Texture_Desc ds_tex_desc = {
-        .width = 1920,
-        .height = 1080,
+        .width = window_data.width,
+        .height = window_data.height,
         .depth_or_array_layers = 1,
         .mip_levels = 1,
         .dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
@@ -59,12 +89,19 @@ int32_t main()
         .rtv_dimension = D3D12_RTV_DIMENSION_UNKNOWN,
         .dsv_dimension = D3D12_DSV_DIMENSION_TEXTURE2D,
         .initial_layout = D3D12_BARRIER_LAYOUT_UNDEFINED,
-        .format = DXGI_FORMAT_D32_FLOAT
+        .format = DXGI_FORMAT_D32_FLOAT,
+        .optimized_clear_value = {
+            .Format = DXGI_FORMAT_D32_FLOAT,
+            .DepthStencil = {
+                .Depth = 1.0f,
+                .Stencil = 0
+            }
+        }
     };
     auto ds_texture = render_engine->create_texture(ds_tex_desc);
 
     owge::Swapchain_Pass_Settings swapchain_pass_settings = {
-        .clear_color = { 0.0f, 0.0f, 0.0f, 0.0f },
+        .clear_color = { 0.02315f, 0.30383f, 0.5911f, 0.0f },
         .depth_stencil_texture = ds_texture
     };
     auto swapchain_pass = std::make_unique<owge::Swapchain_Pass_Render_Procedure>(
@@ -110,8 +147,6 @@ int32_t main()
         float delta_time = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_time).count();
         camera.aspect = float(window->get_data().width) / float(window->get_data().height);
         camera.update(input.get(), delta_time, !imgui_capture_input);
-
-        // ImGui::ShowDemoWindow();
 
         static bool renderer_settings_open = true;
         ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, 512.0f), ImVec2(2.0f * 512.0f, 2.0f * 512.0f));
