@@ -40,9 +40,9 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float y_dy = y_dy_z_dy.x;
     float z_dy = y_dy_z_dy.y;
 
-    float j_x_dx = 1.0 + /* lambda * */ z_x_dx.y;
-    float j_y_dy = 1.0 + /* lambda * */ y_dy_z_dy.x;
-    float j_y_dx = /* lambda * */ y_dx_z_dx.x;
+    float j_x_dx = 1.0 + /* lambda * */ x_dx;
+    float j_y_dy = 1.0 + /* lambda * */ y_dy;
+    float j_y_dx = /* lambda * */ y_dx;
     float j_x_dy = j_y_dx;
     float jacobian = j_x_dx * j_y_dy - j_x_dy * j_y_dx;
 

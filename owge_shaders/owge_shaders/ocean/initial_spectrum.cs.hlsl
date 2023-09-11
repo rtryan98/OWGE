@@ -13,7 +13,10 @@ struct Spectrum_Parameters
 struct Ocean_Parameters
 {
     uint  size;                         // N = M = 2^n
+    uint oceanographic_spectrum;
     float lengthscales[4];              // L
+    float spectral_cutoffs_low[4];
+    float spectral_cutoffs_high[4];
     float gravity;                      // g
     float ocean_depth;                  // h
     Spectrum_Parameters spectra[2];     // Local and Swell
@@ -56,9 +59,6 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     float directional_spectrum = oceanography_donelan_banner_directional_spreading(
         omega, omega_peak, theta);
 
-    omega_peak = oceanography_pierson_moskowitz_omega_peak(pars.gravity, pars.spectra[0].wind_speed);
-    non_directional_spectrum = oceanography_pierson_moskowitz_spectrum(omega, omega_peak, pars.gravity, pars.spectra[0].wind_speed);
-
     float spectrum = non_directional_spectrum * directional_spectrum;
     spectrum = sqrt(2.0f * spectrum * abs(omega_d_dk / wavenumber) * delta_k * delta_k);
     float2 noise = 1.0 / sqrt(2.0) * float2(
@@ -66,20 +66,28 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         box_muller_12(1.0/float(0xffffffffu) * float2(pcg3d(id.xyz + uint3(0, 0, 4)).xy)));
     float2 final_spectrum = noise * spectrum;
 
+    // We do not want to sample the oceanographic spectrum multiple times at the same wavenumber.
+    // Doing so means we are oversampling and it will produce wrong results.
+    bool cutoff = false;
+    if ((wavenumber < pars.spectral_cutoffs_low[id.z]) || (wavenumber > pars.spectral_cutoffs_high[id.z]))
+    {
+        cutoff = true;
+    }
+
+    // We cannot sample all wavelengths without loss of information according to the Shannon-Nyquist sampling theorem,
+    // so we need to cut off the spectrum at those wavelengths as well.
+    // This is not necessarily handled by the cutoffs provided so we may ensure it.
     bool sampling_limit = false;
     float k_min = sqrt(2.0) * 2.0 * MC_PI / pars.lengthscales[id.z];
     float k_max = MC_PI * pars.size / pars.lengthscales[id.z];
-    if((wavenumber < k_min) || (wavenumber > k_max))
+    if((wavenumber <= k_min + 0.001) || (wavenumber >= k_max - 0.001))
     {
         sampling_limit = true;
     }
-    if ( (id_shifted.x == 0 && id_shifted.y == 0) || sampling_limit )
+
+    if ( cutoff || sampling_limit )
     {
-        // We need to set the 0th wavevector to 0.
-        // This does not break the calculation either, as this only corresponds to the DC-part of the spectrum.
-        // We cannot sample all wavelengths without loss of information according to the Shannon-Nyquist sampling theorem,
-        // so we need to cut off the spectrum at those wavelengths as well.
-        final_spectrum = float2(0.0, 0.0);
+        final_spectrum = 0.0;
         omega = 0.0;
     }
 

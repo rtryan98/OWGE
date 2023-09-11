@@ -30,6 +30,16 @@ float oceanography_calculate_v_yu_karaev_spectrum_omega_m(float fetch)
     return float(result);
 }
 
+float ocean_calculate_lower_spectrum_cutoff(float length_scale)
+{
+    return 2.0f * XM_PI / length_scale;
+}
+
+float ocean_calculate_higher_spectrum_cutoff(uint32_t size, float length_scale)
+{
+    return XM_PI * float(size) / length_scale;
+}
+
 void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
     const Render_Procedure_Payload& payload, Barrier_Builder& barrier_builder)
 {
@@ -54,6 +64,26 @@ void Ocean_Simulation_Render_Procedure::process_initial_spectrum(
             m_settings->length_scales[1],
             m_settings->length_scales[2],
             m_settings->length_scales[3]
+        },
+        .spectral_cutoffs_low = {
+            std::max(
+                ocean_calculate_lower_spectrum_cutoff(m_settings->length_scales[0]),
+                ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[1])),
+            std::max(
+                ocean_calculate_lower_spectrum_cutoff(m_settings->length_scales[1]),
+                ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[2])),
+            std::max(
+                ocean_calculate_lower_spectrum_cutoff(m_settings->length_scales[2]),
+                ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[3])),
+            std::max(
+                ocean_calculate_lower_spectrum_cutoff(m_settings->length_scales[3]),
+                0.0f)
+        },
+        .spectral_cutoffs_high = {
+            ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[0]),
+            ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[1]),
+            ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[2]),
+            ocean_calculate_higher_spectrum_cutoff(m_settings->size, m_settings->length_scales[3])
         },
         .gravity = m_settings->gravity,
         .ocean_depth = m_settings->ocean_depth,

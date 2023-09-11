@@ -43,7 +43,14 @@ struct Ocean_Settings
 
     uint32_t size = 256;
     uint32_t cascade_count = MAX_CASCADES;
-    float length_scales[MAX_CASCADES] = { 28.5327820804f, 74.6997932802f, 195.56659776f, 512.0f }; // L[3] * (1-phi)^(1-idx)
+    float length_scales[MAX_CASCADES] = {
+        6.73567615816f,
+        120.86680448f, // L[0] * (1 / (1 - phi^-1))^3
+        316.43340223f,// L[0] * (1 / (1 - phi^-1))^4
+        828.43340223f // L[0] * (1 / (1 - phi^-1))^5
+    };
+    float spectral_cutoffs_low[MAX_CASCADES];
+    float spectral_cutoffs_high[MAX_CASCADES];
     float gravity = 9.81f;
     float ocean_depth = 35.0f;
     float horizontal_displacement_scale = 1.0f;

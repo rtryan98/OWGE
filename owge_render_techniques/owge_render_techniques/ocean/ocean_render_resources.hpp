@@ -24,7 +24,10 @@ struct Ocean_Simulation_Spectra
 struct Ocean_Simulation_Initial_Spectrum_Parameter_Buffer
 {
     uint32_t size;
-    float length_scales[4];
+    uint32_t oceanographic_spectrum;
+    float length_scales[Ocean_Settings::MAX_CASCADES];
+    float spectral_cutoffs_low[Ocean_Settings::MAX_CASCADES];
+    float spectral_cutoffs_high[Ocean_Settings::MAX_CASCADES];
     float gravity;
     float ocean_depth;
     Ocean_Simulation_Spectra spectra[2];

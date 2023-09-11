@@ -28,12 +28,12 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 {
     Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_offset);
 
-    float4 spectrum_wavenumber = bnd.spectrum_tex.load_2d_array<float4>(id.xyz);
-    float2 spectrum = spectrum_wavenumber.xy;
-    float2 wavenumber = spectrum_wavenumber.zw;
-    float mag = max(0.0001, length(wavenumber));
-    uint2 conjugate_pos = (uint2(bnd.size, bnd.size) - id.xy) % bnd.size;
-    float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float4>(uint3(conjugate_pos, id.z)).xy);
+    float4 spectrum_and_wavenumber = bnd.spectrum_tex.load_2d_array<float4>(id.xyz);
+    float2 spectrum = spectrum_and_wavenumber.xy;
+    float2 wavenumber = spectrum_and_wavenumber.zw;
+    float mag = max(0.001, length(wavenumber));
+    float one_over_mag = 1.0 / mag;
+    float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float4>(uint3((bnd.size - id.x) % bnd.size, (bnd.size - id.y) % bnd.size, id.z)).xy);
     float omega_k = bnd.angular_frequency_tex.load_2d_array<float>(id.xyz);
 
     float phi = bnd.time * omega_k;
@@ -42,16 +42,16 @@ void cs_main(uint3 id : SV_DispatchThreadID)
 
     float2 rotated_developed_spectrum = float2(-developed_spectrum.y, developed_spectrum.x); // multiplication by i
 
-    float2 displacement_x = rotated_developed_spectrum * wavenumber.x * (1.0 / mag);
-    float2 displacement_y = rotated_developed_spectrum * wavenumber.y * (1.0 / mag);
+    float2 displacement_x = rotated_developed_spectrum * wavenumber.x * one_over_mag;
+    float2 displacement_y = rotated_developed_spectrum * wavenumber.y * one_over_mag;
     float2 displacement_z = developed_spectrum;
 
-    float2 displacement_x_dx = -developed_spectrum * wavenumber.x * wavenumber.x * (1.0 / mag);
-    float2 displacement_y_dx = -developed_spectrum * wavenumber.y * wavenumber.x * (1.0 / mag);
+    float2 displacement_x_dx = -developed_spectrum * wavenumber.x * wavenumber.x * one_over_mag;
+    float2 displacement_y_dx = -developed_spectrum * wavenumber.y * wavenumber.x * one_over_mag;
     float2 displacement_z_dx = rotated_developed_spectrum * wavenumber.x;
 
     // displacement_x_dy is equal to displacement_y_dx
-    float2 displacement_y_dy = -developed_spectrum * wavenumber.y * wavenumber.y * (1.0 / mag);
+    float2 displacement_y_dy = -developed_spectrum * wavenumber.y * wavenumber.y * one_over_mag;
     float2 displacement_z_dy = rotated_developed_spectrum * wavenumber.y;
 
     // We have hermitian symmetric spectra, so we can calculate two IFFTs in one.

@@ -100,7 +100,7 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 0.7f,
                 .wind_direction = 55.0f,
-                .fetch = 125.0f,
+                .fetch = 256.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },
@@ -119,7 +119,7 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 3.3f,
                 .wind_direction = 55.0f,
-                .fetch = 125.0f,
+                .fetch = 256.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },
@@ -138,7 +138,7 @@ constexpr static Ocean_Simulation_Preset presets[] = {
             .local_spectrum = {
                 .wind_speed = 5.0f,
                 .wind_direction = 55.0f,
-                .fetch = 125.0f,
+                .fetch = 256.0f,
                 .spectrum = Ocean_Spectrum::V_Yu_Karaev,
                 .directional_spreading_function = Ocean_Directional_Spreading_Function::Hasselmann
             },

@@ -361,7 +361,7 @@ void Ocean_Simulation_Render_Resources::destroy_surface_shaders(Render_Engine* r
 
 void Ocean_Simulation_Render_Resources::create_surface_resources(Render_Engine* render_engine)
 {
-    auto ocean_plane = mesh_generate_simple_plane_2d(2048);
+    auto ocean_plane = mesh_generate_simple_plane_2d(4096);
 
     Buffer_Desc ocean_surface_vertex_buffer_desc = {
         .size = ocean_plane.vertex_positions.size() * sizeof(XMFLOAT2),
