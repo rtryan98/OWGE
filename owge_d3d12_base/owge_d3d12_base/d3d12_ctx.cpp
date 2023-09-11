@@ -115,17 +115,6 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
             .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
         }
     };
-    /*
-    D3D12_ROOT_PARAMETER1 global_rootsig_param = {
-        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-        .Constants = {
-            .ShaderRegister = 0,
-            .RegisterSpace = 0,
-            .Num32BitValues = 4
-        },
-        .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
-    };
-    */
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC versioned_rootsig_desc = {
         .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
         .Desc_1_2 = {
@@ -134,7 +123,6 @@ D3D12_Context create_d3d12_context(const D3D12_Context_Settings* settings)
             .NumStaticSamplers = UINT(settings->static_samplers.size()),
             .pStaticSamplers = settings->static_samplers.data(),
             .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
-            //    | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
         }
     };
     Com_Ptr<ID3DBlob> rootsig_error_blob;

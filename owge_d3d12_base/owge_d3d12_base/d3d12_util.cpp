@@ -89,16 +89,23 @@ Descriptor Descriptor_Allocator::allocate() noexcept
         m_current_idx += 1;
     }
 
-    auto desc = m_heap->GetDesc();
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = {};
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = {};
+
+    auto desc = m_heap->GetDesc(); // TODO: store type
     auto increment_size = m_device->GetDescriptorHandleIncrementSize(desc.Type);
-    auto cpu_start = m_heap->GetCPUDescriptorHandleForHeapStart();
-    cpu_start.ptr += uint64_t(index) * increment_size;
-    auto gpu_start = m_heap->GetGPUDescriptorHandleForHeapStart();
-    gpu_start.ptr += uint64_t(index) * increment_size;
+    cpu_handle = m_heap->GetCPUDescriptorHandleForHeapStart();
+    cpu_handle.ptr += uint64_t(index) * increment_size;
+
+    if (desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+    {
+        gpu_handle = m_heap->GetGPUDescriptorHandleForHeapStart();
+        gpu_handle.ptr += uint64_t(index) * increment_size;
+    }
 
     return {
-        .cpu_handle = cpu_start,
-        .gpu_handle = gpu_start,
+        .cpu_handle = cpu_handle,
+        .gpu_handle = gpu_handle,
         .index = index
     };
 }
