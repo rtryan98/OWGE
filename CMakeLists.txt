@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(OWGE)
+project(OWGE CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY bin)
