@@ -82,7 +82,10 @@ float oceanography_generalized_a_b_spectrum(float omega, float a, float b)
 
 float oceanography_jonswap_omega_peak(float g, float u, float f)
 {
-    return 22.0f * (pow(g, 2.0f) / (u * f));
+    // return 22.0f * (pow(g, 2.0f) / (u * f));
+    float chi = min(1000, g * f * 1000 / u / u);
+    float nu = 3.5 * pow(chi, -0.33);
+    return 2.0 * MC_PI * g * nu / u;
 }
 
 float oceanography_jonswap_spectrum(float omega, float omega_peak, float u, float g, float f)
@@ -93,7 +96,9 @@ float oceanography_jonswap_spectrum(float omega, float omega_peak, float u, floa
     float sigma = omega <= omega_peak
         ? sigma_0
         : sigma_1;
-    float alpha = 0.076f * pow(pow(u, 2.0f) / (f * g), 0.22f);
+    // float alpha = 0.076f * pow(pow(u, 2.0f) / (f * g), 0.22f);
+    float chi = min(1000, g * f * 1000 / u / u);
+    float alpha = 0.076 * pow(chi, -0.22);
     float r = exp(-(pow(omega - omega_peak, 2.0f) / (2.0f * pow(sigma, 2.0f) * pow(omega_peak, 2.0f))));
     return ((alpha * pow(g, 2.0f))/(pow(omega, 5.0f))) * exp(-1.25f * pow(omega_peak / omega, 4.0f)) * pow(gamma, r);
 }

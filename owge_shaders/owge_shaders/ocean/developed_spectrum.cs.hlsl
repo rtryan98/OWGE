@@ -23,43 +23,45 @@ struct Push_Constants
 };
 ConstantBuffer<Push_Constants> pc : register(b0, space0);
 
+float2 mul_i(float2 complex)
+{
+    return float2(-complex.y, complex.x);
+}
+
 [numthreads(32, 32, 1)]
 void cs_main(uint3 id : SV_DispatchThreadID)
 {
     Bindset bnd = read_bindset_uniform<Bindset>(pc.bindset_buffer, pc.bindset_offset);
 
-    float4 spectrum_and_wavenumber = bnd.spectrum_tex.load_2d_array<float4>(id.xyz);
-    float2 spectrum = spectrum_and_wavenumber.xy;
-    float2 wavenumber = spectrum_and_wavenumber.zw;
-    float mag = max(0.001, length(wavenumber));
-    float one_over_mag = 1.0 / mag;
+    float4 spectrum_and_k = bnd.spectrum_tex.load_2d_array<float4>(id.xyz);
+    float2 spectrum = spectrum_and_k.xy;
+    float2 k = spectrum_and_k.zw;
+    float one_over_k_len = 1.0 / max(0.001, length(k));
     float2 spectrum_minus_k = complex_conjugate(bnd.spectrum_tex.load_2d_array<float4>(uint3((bnd.size - id.x) % bnd.size, (bnd.size - id.y) % bnd.size, id.z)).xy);
     float omega_k = bnd.angular_frequency_tex.load_2d_array<float>(id.xyz);
 
-    float phi = bnd.time * omega_k;
-    float2 cmul_term = complex_from_polar(1.0, phi);
-    float2 developed_spectrum = 0.5 * (complex_mul(spectrum, cmul_term) + complex_mul(spectrum_minus_k, complex_conjugate(cmul_term)));
+    float2 cmul_term = complex_from_polar(1.0, bnd.time * omega_k);
+    float2 h = 0.5 * (complex_mul(spectrum, cmul_term) + complex_mul(spectrum_minus_k, complex_conjugate(cmul_term)));
+    float2 ih = mul_i(h);
 
-    float2 rotated_developed_spectrum = float2(-developed_spectrum.y, developed_spectrum.x); // multiplication by i
+    float2 displacement_x = ih * k.x * one_over_k_len;
+    float2 displacement_y = ih * k.y * one_over_k_len;
+    float2 displacement_z = h;
 
-    float2 displacement_x = rotated_developed_spectrum * wavenumber.x * one_over_mag;
-    float2 displacement_y = rotated_developed_spectrum * wavenumber.y * one_over_mag;
-    float2 displacement_z = developed_spectrum;
-
-    float2 displacement_x_dx = -developed_spectrum * wavenumber.x * wavenumber.x * one_over_mag;
-    float2 displacement_y_dx = -developed_spectrum * wavenumber.y * wavenumber.x * one_over_mag;
-    float2 displacement_z_dx = rotated_developed_spectrum * wavenumber.x;
+    float2 displacement_x_dx = -h * k.x * k.x * one_over_k_len;
+    float2 displacement_y_dx = -h * k.y * k.x * one_over_k_len;
+    float2 displacement_z_dx = ih * k.x;
 
     // displacement_x_dy is equal to displacement_y_dx
-    float2 displacement_y_dy = -developed_spectrum * wavenumber.y * wavenumber.y * one_over_mag;
-    float2 displacement_z_dy = rotated_developed_spectrum * wavenumber.y;
+    float2 displacement_y_dy = -h * k.y * k.y * one_over_k_len;
+    float2 displacement_z_dy = ih * k.y;
 
     // We have hermitian symmetric spectra, so we can calculate two IFFTs in one.
     // F^{-1}[F[a] + i*F[b]]
-    float2 packed_spectrum_x_y = displacement_x + float2(-displacement_y.y, displacement_y.x);
-    float2 packed_spectrum_z_x_dx = displacement_z + float2(-displacement_x_dx.y, displacement_x_dx.x);
-    float2 packed_spectrum_y_dx_z_dx = displacement_y_dx + float2(-displacement_z_dx.y, displacement_z_dx.x);
-    float2 packed_spectrum_y_dy_z_dy = displacement_y_dy + float2(-displacement_z_dy.y, displacement_z_dy.x);
+    float2 packed_spectrum_x_y = displacement_x + mul_i(displacement_y);
+    float2 packed_spectrum_z_x_dx = displacement_z + mul_i(displacement_x_dx);
+    float2 packed_spectrum_y_dx_z_dx = displacement_y_dx + mul_i(displacement_z_dx);
+    float2 packed_spectrum_y_dy_z_dy = displacement_y_dy + mul_i(displacement_z_dy);
 
     uint2 shifted_pos = (id.xy + uint2(bnd.size, bnd.size) / 2) % bnd.size;
 

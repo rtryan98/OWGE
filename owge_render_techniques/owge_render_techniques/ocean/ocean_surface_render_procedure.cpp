@@ -27,7 +27,8 @@ void Ocean_Surface_Render_Procedure::process(const Render_Procedure_Payload& pay
             m_settings->length_scales[2],
             m_settings->length_scales[3]
         },
-        .camera_position = m_camera->position
+        .camera_position = m_camera->position,
+        .sun_position = m_camera->position
     };
     payload.render_engine->copy_and_upload_data(
         sizeof(Ocean_Surface_VS_Render_Data),

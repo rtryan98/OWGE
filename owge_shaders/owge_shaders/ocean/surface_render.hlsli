@@ -10,6 +10,7 @@ struct Render_Data
     float4x4 view_proj;
     float length_scales[OCEAN_MAX_CASCADES];
     float4 camera_pos;
+    float4 sun_pos;
 };
 
 struct Bindset

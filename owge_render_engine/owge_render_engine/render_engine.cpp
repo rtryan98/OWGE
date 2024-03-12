@@ -166,8 +166,8 @@ void Render_Engine::render(float delta_time)
         m_ctx.cbv_srv_uav_descriptor_heap, m_ctx.sampler_descriptor_heap
         });
     procedure_cmd->SetDescriptorHeaps(uint32_t(descriptor_heaps.size()), descriptor_heaps.data());
-    procedure_cmd->SetComputeRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
-    procedure_cmd->SetGraphicsRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+    // procedure_cmd->SetComputeRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+    // procedure_cmd->SetGraphicsRootDescriptorTable(1, m_ctx.sampler_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 
     for (auto procedure : m_procedures)
     {

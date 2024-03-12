@@ -87,8 +87,7 @@ struct Ocean_Surface_VS_Render_Data
     XMFLOAT4X4 view_proj;
     float length_scales[Ocean_Settings::MAX_CASCADES];
     XMFLOAT4 camera_position;
-    float scale;
-    float offset;
+    XMFLOAT4 sun_position;
 };
 
 struct Ocean_Simulation_Render_Resources

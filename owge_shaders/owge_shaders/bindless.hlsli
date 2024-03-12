@@ -156,14 +156,14 @@ struct Sampler
 
     SamplerState as_nonuniform()
     {
-    //    return SamplerDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
-        return samplers[NonUniformResourceIndex(handle.read_index())];
+        return SamplerDescriptorHeap[NonUniformResourceIndex(handle.read_index())];
+    //    return samplers[NonUniformResourceIndex(handle.read_index())];
     }
 
     SamplerState as_uniform()
     {
-    //    return SamplerDescriptorHeap[handle.read_index()];
-        return samplers[handle.read_index()];
+        return SamplerDescriptorHeap[handle.read_index()];
+    //    return samplers[handle.read_index()];
     }
 };
 

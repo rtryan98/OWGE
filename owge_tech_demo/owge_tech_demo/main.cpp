@@ -63,6 +63,7 @@ int32_t main(uint32_t argc, const char* argv[])
     auto input = std::make_unique<owge::Input>(window->get_hwnd());
     owge::D3D12_Context_Settings d3d12_settings = {
         .enable_validation = enable_d3d12_gpu_validation_arg.getValue() || enable_d3d12_validation_arg.getValue(),
+        // .enable_validation = true,
         .enable_gpu_based_validation = enable_d3d12_gpu_validation_arg.getValue(),
         .disable_tdr = false,
         .d3d_feature_level = D3D_FEATURE_LEVEL_12_1,

@@ -2,7 +2,7 @@
 
 float2 calculate_slope(float z_dx, float z_dy, float x_dx, float y_dy)
 {
-    return float2(z_dx / (1.0 + /* lambda * */ x_dx), z_dy / (1.0 + /* lambda * */ y_dy));
+    return float2(z_dx / 1.0 + /* lambda * */x_dx, z_dy / 1.0 + /* lambda * */y_dy);
 }
 
 float3 calculate_normals(float2 slope)
@@ -35,9 +35,14 @@ PS_Out ps_main(PS_In ps_in)
     float2 slope = calculate_slope(derivatives.z, derivatives.w, derivatives.x, derivatives.y);
     float3 normals = calculate_normals(slope);
 
-    float3 light_dir = normalize(float3(0.0, 0.0, 1.0));
-
     float3 view_dir = normalize(render_data.camera_pos.xyz - ps_in.pos_ws);
+    if (dot(normals, view_dir) < 0.0)
+    {
+        normals = normalize(reflect(normals, view_dir));
+    }
+
+    float3 light_dir = normalize(float3(render_data.sun_pos.xy / 128.0, 1.0));
+    // float3 light_dir = normalize(float3(0.0, 0.0, 1.0));
     float3 refl_dir = normalize(reflect(-light_dir, normals));
 
     float ndotl = max(0.0, dot(normals, light_dir));
@@ -56,8 +61,8 @@ PS_Out ps_main(PS_In ps_in)
     // specular = 0;
     float3 diffuse = ndotl * color;
 
-    result.col = float4(ambient + specular + diffuse, 1.0);
-    // result.col = float4(0.5 + 0.5 * normals, 1.0);
+    // result.col = float4(ambient /* + specular */ + diffuse, 1.0);
+    result.col = float4(0.5 + 0.5 * normals, 1.0);
 
     return result;
 }

@@ -1,9 +1,8 @@
 # Open World Game Engine
 A (highly experimental) game and rendering engine, made for open worlds.
 It makes use of features only available to recent GPUs.
-Shader Model 6.7 is required which might not be supported on many GPUs.
-D3D12 Enhanced Barriers are used extensively and might not be supported on some drivers and GPUs.
-On AMD hardware it might be required to download different drivers than the mainline ones.
+Shader Model 6.6 is required which might not be supported on many GPUs.
+For AMD GPU users, AMD Software: Adrenalin Edition 23.9.2 or newer is required due to the use of Enhanced Barriers.
 
 ## Build
 Building OWGE requires CMake 3.18 and is only tested using Visual Studio 2022.
